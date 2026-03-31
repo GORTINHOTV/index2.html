@@ -9,37 +9,35 @@
         body { font-family: 'Segoe UI', sans-serif; background: #000; color: white; min-height: 100vh; overflow-x: hidden; }
         #loginScreen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
         .login-box { background: #141414; padding: 2rem; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #222; }
-        input, select, textarea { width: 100%; padding: 0.8rem; margin: 0.5rem 0; background: #333; border: none; color: white; border-radius: 5px; outline: none; }
-        input:focus { border: 1px solid #e50914; }
-        .btn-red { width: 100%; padding: 1rem; background: #e50914; border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; transition: 0.3s; }
-        .btn-red:hover { background: #b20710; }
+        input, select, textarea { width: 100%; padding: 0.8rem; margin: 0.5rem 0; background: #333; border: none; color: white; border-radius: 5px; }
+        .btn-red { width: 100%; padding: 1rem; background: #e50914; border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
         
         #mainApp { display: none; padding-top: 140px; }
         header { background: rgba(0,0,0,0.95); padding: 1rem 0; position: fixed; top: 0; width: 100%; z-index: 1000; border-bottom: 1px solid #333; }
         .container { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
         .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #searchBar { width: 100%; background: #222; border: 1px solid #444; padding: 12px; color: white; border-radius: 5px; outline: none; }
+        #searchBar { width: 100%; background: #222; border: 1px solid #444; padding: 12px; color: white; border-radius: 5px; }
 
         .admin-only { display: none !important; }
         .is-admin .admin-only { display: inline-block !important; }
         
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 20px 0; }
-        .card { background: #181818; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #222; transition: 0.3s; }
-        .card:hover { transform: translateY(-5px); border-color: #e50914; }
+        .card { background: #181818; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #222; }
         .card-info { padding: 15px; }
-        .play-btn { width: 100%; padding: 12px; background: white; color: black; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .del-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.8); border: none; color: white; padding: 5px 8px; border-radius: 5px; cursor: pointer; z-index: 10; font-size: 0.7rem; }
+        .play-btn { width: 100%; padding: 10px; background: white; color: black; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .del-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.7); border: none; color: white; padding: 5px; border-radius: 5px; cursor: pointer; z-index: 10; }
         
         .user-list { margin-top: 15px; background: #222; border-radius: 5px; max-height: 300px; overflow-y: auto; text-align: left; padding: 10px; }
         .user-item { padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
         .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        .online { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
         .offline { background: #555; }
         .time-counter { font-family: monospace; font-size: 0.75rem; color: #e50914; font-weight: bold; }
+        .badge-adm { background: gold; color: black; font-size: 0.6rem; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
 
         #videoOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; flex-direction: column; }
         .player-header { padding: 15px; background: #141414; display: flex; justify-content: space-between; align-items: center; }
-        iframe, video { width: 100%; height: 100%; border: none; background: #000; }
+        iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
@@ -57,7 +55,7 @@
         <header>
             <div class="container">
                 <div class="header-top">
-                    <div style="font-size: 1.5rem; font-weight: bold; color:#e50914;">GORDINHO TV</div>
+                    <div style="font-size: 1.5rem; font-weight: bold; color:#e50914;">GORTINHO TV</div>
                     <div>
                         <button class="admin-only" onclick="abrirModalUsers()" style="background:#333; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; margin-right:5px;">👥 USUÁRIOS</button>
                         <button class="admin-only" onclick="document.getElementById('modal').style.display='flex'" style="background:#e50914; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">+ ADD FILME</button>
@@ -75,20 +73,26 @@
             <h3 style="color:#e50914; margin-bottom:10px;">Gerenciar Acessos</h3>
             <input type="text" id="newU" placeholder="Nome do Usuário">
             <input type="text" id="newP" placeholder="Senha">
+            
             <div style="display: flex; gap: 10px;">
                 <input type="number" id="timeVal" placeholder="Valor" style="flex: 1;">
                 <select id="timeUnit" style="flex: 1.5;">
+                    <option value="seg">Segundos</option>
                     <option value="min">Minutos</option>
                     <option value="hor">Horas</option>
-                    <option value="dia" selected>Dias</option>
-                    <option value="mes">Meses</option>
+                    <option value="dia">Dias</option>
+                    <option value="mes">Meses (30d)</option>
+                    <option value="ano">Anos (365d)</option>
                 </select>
             </div>
+            
             <input type="number" id="newLimit" placeholder="Limite de Telas" value="1">
+
             <div id="admToggleOption" style="display:none; margin: 10px 0; align-items: center; gap: 10px; font-size: 0.9rem;">
-                <input type="checkbox" id="isAdmCheck" style="width: 18px; height: 18px;"> 
+                <input type="checkbox" id="isAdmCheck" style="width: 20px; height: 20px;"> 
                 <span>Dar acesso de Administrador?</span>
             </div>
+
             <button class="btn-red" onclick="salvarUsuario()">CRIAR ACESSO</button>
             <div class="user-list" id="listaU"></div>
             <button onclick="fecharModalUsers()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Fechar</button>
@@ -98,7 +102,7 @@
     <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
         <div class="login-box" style="text-align: left;">
             <h3 style="color:#e50914;">Novo Filme</h3>
-            <input type="text" id="fUrl" placeholder="Link do Filme (Streamtape, Drive, MP4...)">
+            <input type="text" id="fUrl" placeholder="Link do Filme">
             <input type="text" id="fTitle" placeholder="Título">
             <input type="number" id="fRating" placeholder="Nota (1-10)">
             <textarea id="fDesc" placeholder="Sinopse"></textarea>
@@ -110,9 +114,9 @@
     <div id="videoOverlay">
         <div class="player-header">
             <span id="playingTitle" style="font-weight:bold;">Assistindo...</span>
-            <button onclick="fecharPlayer()" style="background:#e50914; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold;">FECHAR X</button>
+            <button onclick="fecharPlayer()" style="background:#e50914; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">FECHAR X</button>
         </div>
-        <div id="playerContent" style="width:100%; height:100%; display:flex; background:#000;"></div>
+        <div id="playerContent" style="width:100%; height:100%;"></div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -128,61 +132,22 @@
             messagingSenderId: "416261508283",
             appId: "1:416261508283:web:53960003c89a9df7de2d9e"
         };
+
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         let userLogado = "";
         let idSessao = "";
+        let timerPainel = null;
 
-        // FUNÇÃO PARA RODAR STREAMTAPE E OUTROS
-        function abrirPlayer(url, titulo) {
-            document.getElementById('playingTitle').innerText = titulo;
-            const container = document.getElementById('playerContent');
-            container.innerHTML = ""; 
-
-            let finalUrl = url;
-
-            // 1. AJUSTE PARA STREAMTAPE (Troca /v/ por /e/ para abrir o player direto)
-            if(url.includes('streamtape.com/v/')) {
-                finalUrl = url.replace('/v/', '/e/');
-            }
-
-            // 2. AJUSTE PARA GOOGLE DRIVE
-            if(url.includes('drive.google.com')) {
-                finalUrl = url.replace('/view', '/preview');
-            }
-
-            // DETECÇÃO DE TIPO DE PLAYER
-            const isDirectFile = url.toLowerCase().match(/\.(mp4|mkv|webm|ogg|mov)$/);
-
-            if (isDirectFile) {
-                // Player Nativo para arquivos diretos
-                container.innerHTML = `
-                    <video id="mainVideo" controls autoplay playsinline preload="auto" style="width:100%; height:100%; background:#000;">
-                        <source src="${finalUrl}" type="video/mp4">
-                        Seu navegador não suporta vídeos.
-                    </video>`;
-            } else {
-                // Iframe com SANDBOX para bloquear anúncios do Streamtape
-                container.innerHTML = `
-                    <iframe src="${finalUrl}" 
-                        sandbox="allow-forms allow-scripts allow-pointer-lock allow-same-origin allow-top-navigation" 
-                        allow="autoplay; fullscreen" 
-                        allowfullscreen 
-                        style="width:100%; height:100%; border:none;">
-                    </iframe>`;
-            }
-            
-            document.getElementById('videoOverlay').style.display = 'flex';
-        }
-
-        // Lógica de Login, Firebase e Interface mantidas...
         function entrar() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
+
             if (u === "Miguel" && (p === "260711" || p === "123")) {
                 userLogado = u; carregarApp(true); return;
             }
+
             db.ref('usuarios').once('value', (snap) => {
                 const users = snap.val();
                 let uId = null;
@@ -191,12 +156,41 @@
                         if(users[id].nome === u && users[id].senha === p) uId = id;
                     });
                 }
+
                 if(uId) {
                     const user = users[uId];
                     if(Date.now() > user.expiraEm) { alert("Acesso expirado!"); return; }
+                    
+                    if(user.telasAtivas >= user.limiteTelas) {
+                        alert("Limite de telas atingido! Deslogue de outro dispositivo.");
+                        return;
+                    }
+
+                    const meuToken = Date.now().toString();
                     idSessao = uId;
+                    sessionStorage.setItem('meuToken', meuToken);
+
+                    db.ref('usuarios/' + uId).update({ 
+                        online: true, 
+                        telasAtivas: (user.telasAtivas || 0) + 1,
+                        sessionToken: meuToken
+                    });
+
                     carregarApp(user.isAdmin);
+                    verificarStatusSessao();
                 } else { alert("Login inválido!"); }
+            });
+        }
+
+        function verificarStatusSessao() {
+            if(!idSessao) return;
+            db.ref('usuarios/' + idSessao).on('value', snap => {
+                const user = snap.val();
+                const meuToken = sessionStorage.getItem('meuToken');
+                if (!user || user.sessionToken !== meuToken) {
+                    alert("Sessão encerrada pelo administrador.");
+                    location.reload();
+                }
             });
         }
 
@@ -208,6 +202,120 @@
             escutarBanco();
         }
 
+        function sair() {
+            if(idSessao) {
+                db.ref('usuarios/' + idSessao).once('value', snap => {
+                    const u = snap.val();
+                    let novasTelas = (u && u.telasAtivas > 0) ? u.telasAtivas - 1 : 0;
+                    db.ref('usuarios/' + idSessao).update({ 
+                        online: false, 
+                        telasAtivas: novasTelas,
+                        sessionToken: null 
+                    }).then(() => location.reload());
+                });
+            } else location.reload();
+        }
+
+        function salvarUsuario() {
+            const nome = document.getElementById('newU').value;
+            const senha = document.getElementById('newP').value;
+            const val = parseInt(document.getElementById('timeVal').value);
+            const unit = document.getElementById('timeUnit').value;
+            const isAdmin = document.getElementById('isAdmCheck').checked;
+            const limit = parseInt(document.getElementById('newLimit').value) || 1;
+            
+            if(!nome || !senha || isNaN(val)) return alert("Preencha tudo!");
+
+            let ms = val * 1000;
+            if(unit === "min") ms *= 60;
+            if(unit === "hor") ms *= 3600;
+            if(unit === "dia") ms *= 86400;
+            if(unit === "mes") ms *= 86400 * 30;
+            if(unit === "ano") ms *= 86400 * 365;
+
+            db.ref('usuarios').push({ nome, senha, expiraEm: Date.now() + ms, online: false, isAdmin, limiteTelas: limit, telasAtivas: 0, sessionToken: null });
+            alert("Acesso Criado!");
+            document.getElementById('newU').value = ""; document.getElementById('newP').value = "";
+        }
+
+        function formatarTempo(ms) {
+            if(ms <= 0) return "EXPIRADO";
+            let s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
+            return `${String(d).padStart(2,'0')}D ${String(h % 24).padStart(2,'0')}H ${String(m % 60).padStart(2,'0')}M ${String(s % 60).padStart(2,'0')}S`;
+        }
+
+        function abrirModalUsers() {
+            document.getElementById('modalUsers').style.display = 'flex';
+            if(timerPainel) clearInterval(timerPainel);
+            
+            timerPainel = setInterval(() => {
+                db.ref('usuarios').once('value', (snap) => {
+                    const lista = document.getElementById('listaU');
+                    lista.innerHTML = "";
+                    const data = snap.val();
+                    if(data) {
+                        Object.keys(data).forEach(id => {
+                            const tempo = formatarTempo(data[id].expiraEm - Date.now());
+                            const status = data[id].online ? 'online' : 'offline';
+                            const admTag = data[id].isAdmin ? '<span class="badge-adm">ADM</span>' : '';
+                            const contagemTelas = `(Telas ${data[id].telasAtivas || 0}/${data[id].limiteTelas || 1})`;
+                            
+                            lista.innerHTML += `
+                                <div class="user-item">
+                                    <div>
+                                        <span class="status-dot ${status}"></span>
+                                        <strong>${data[id].nome}</strong>${admTag}<br>
+                                        <span class="time-counter">${tempo} ${contagemTelas}</span>
+                                    </div>
+                                    <div style="display:flex; flex-direction:column; gap:5px;">
+                                        <button onclick="forcarLogout('${id}')" style="color:orange; background:none; border:none; cursor:pointer; font-size:0.7rem; text-decoration:underline;">Zerar e Desconectar</button>
+                                        <button onclick="excluirUsuario('${id}')" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">Remover</button>
+                                    </div>
+                                </div>`;
+                        });
+                    }
+                });
+            }, 1000);
+        }
+
+        function forcarLogout(id) {
+            db.ref('usuarios/' + id).update({ telasAtivas: 0, online: false, sessionToken: "EXPULSO_" + Date.now() });
+        }
+
+        function excluirUsuario(id) {
+            if(confirm("Deseja excluir e desconectar este usuário?")) {
+                db.ref('usuarios/' + id).remove();
+            }
+        }
+
+        function fecharModalUsers() { document.getElementById('modalUsers').style.display = 'none'; clearInterval(timerPainel); }
+
+        function abrirPlayer(url, titulo) {
+            let finalUrl = url;
+            
+            // CONEXÃO COM STREAMTAPE (Converte link /v/ para /e/ automaticamente)
+            if(url.includes('streamtape.com/v/')) {
+                finalUrl = url.replace('/v/', '/e/');
+            }
+            
+            if(url.includes('drive.google.com')) {
+                finalUrl = url.replace('/view', '/preview');
+            }
+
+            document.getElementById('playingTitle').innerText = titulo;
+            
+            // Sandbox adicionado para o Streamtape rodar sem abrir popups
+            document.getElementById('playerContent').innerHTML = `
+                <iframe src="${finalUrl}" 
+                    allow="autoplay; fullscreen" 
+                    allowfullscreen 
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"
+                    style="width:100%; height:100%; border:none;">
+                </iframe>`;
+                
+            document.getElementById('videoOverlay').style.display = 'flex';
+        }
+
         function fecharPlayer() { 
             document.getElementById('playerContent').innerHTML = ""; 
             document.getElementById('videoOverlay').style.display = 'none'; 
@@ -215,7 +323,6 @@
 
         function salvarNoFirebase() {
             const movie = { title: document.getElementById('fTitle').value, url: document.getElementById('fUrl').value, rating: document.getElementById('fRating').value, desc: document.getElementById('fDesc').value, id: Date.now() };
-            if(!movie.title || !movie.url) return alert("Preencha título e link!");
             db.ref('filmes/' + movie.id).set(movie);
             document.getElementById('modal').style.display = 'none';
         }
@@ -230,11 +337,11 @@
                         grid.innerHTML += `
                             <div class="card">
                                 ${(userLogado === "Miguel") ? `<button class="del-btn" onclick="db.ref('filmes/${m.id}').remove()">Excluir</button>` : ''}
-                                <div style="height:160px; background:#222; display:flex; align-items:center; justify-content:center; font-size:3rem; color:#444;">🎬</div>
+                                <div style="height:150px; background:#222; display:flex; align-items:center; justify-content:center; font-size:3rem;">🎬</div>
                                 <div class="card-info">
-                                    <div class="card-title" style="font-weight:bold; margin-bottom:5px;">${m.title}</div>
-                                    <div style="color:gold; font-size:0.8rem; margin-bottom:10px;">⭐ ${m.rating || '0'}/10</div>
-                                    <p style="font-size:0.75rem; color:#aaa; height:40px; overflow:hidden;">${m.desc || ''}</p>
+                                    <div class="card-title">${m.title}</div>
+                                    <div class="card-meta">⭐ ${m.rating}/10</div>
+                                    <p style="font-size:0.8rem; color:#aaa;">${m.desc}</p>
                                     <button class="play-btn" onclick="abrirPlayer('${m.url}', '${m.title}')">ASSISTIR AGORA</button>
                                 </div>
                             </div>`;
@@ -250,8 +357,6 @@
                 card.style.display = title.includes(termo) ? 'block' : 'none';
             });
         }
-
-        function sair() { location.reload(); }
     </script>
 </body>
 </html>
