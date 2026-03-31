@@ -50,6 +50,7 @@
                 <div class="header-top">
                     <div style="font-size: 1.5rem; font-weight: bold; color:#e50914;">GORTINHO TV</div>
                     <div>
+                        <button class="admin-only" onclick="resetarTudo()" style="background:gold; color:black; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; font-weight:bold; margin-right:5px;">⚠️ LIMPAR TUDO</button>
                         <button class="admin-only" onclick="document.getElementById('modal').style.display='flex'" style="background:#e50914; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">+ ADD FILME</button>
                         <button onclick="sair()" style="background:none; color:gray; border:none; padding:8px; cursor:pointer; font-size:0.8rem;">Sair</button>
                     </div>
@@ -107,7 +108,7 @@
                 carregarApp(true);
                 return;
             }
-            alert("Acesso Negado!");
+            alert("Erro!");
         }
 
         function carregarApp(isAdmin) {
@@ -137,8 +138,11 @@
         function salvarNoFirebase() {
             const id = Date.now();
             const movie = { title: document.getElementById('fTitle').value, url: document.getElementById('fUrl').value, rating: document.getElementById('fRating').value, desc: document.getElementById('fDesc').value, id: id };
-            db.ref('filmes/' + id).set(movie);
-            document.getElementById('modal').style.display = 'none';
+            db.ref('filmes/' + id).set(movie).then(() => {
+                document.getElementById('modal').style.display = 'none';
+                document.getElementById('fTitle').value = "";
+                document.getElementById('fUrl').value = "";
+            });
         }
 
         function escutarBanco() {
@@ -165,18 +169,18 @@
             });
         }
 
-        // FUNÇÃO DE EXCLUSÃO "FORÇADA" PARA LIMPAR O BANCO
         function deletarFilme(id) {
-            if(confirm("Deseja realmente apagar este filme permanentemente?")) {
-                // Remove do banco de dados
-                db.ref('filmes/' + id).remove()
-                .then(() => {
-                    // Remove visualmente da tela na hora, caso o Firebase demore a responder
-                    const card = document.getElementById('card-' + id);
-                    if(card) card.remove();
-                    console.log("Removido com sucesso.");
-                })
-                .catch((e) => alert("Erro ao deletar: " + e.message));
+            if(confirm("Apagar filme?")) {
+                db.ref('filmes/' + id).remove();
+            }
+        }
+
+        // FUNÇÃO PARA LIMPAR TUDO SE DER ERRO
+        function resetarTudo() {
+            if(confirm("VOCÊ VAI APAGAR TODOS OS FILMES DO BANCO DE DADOS! TEM CERTEZA?")) {
+                db.ref('filmes').remove().then(() => {
+                    alert("Banco de dados resetado com sucesso!");
+                });
             }
         }
 
