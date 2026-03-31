@@ -137,31 +137,52 @@
         let idSessao = "";
         let timerPainel = null;
 
-        function entrar() {
+                function entrar() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
+            
+            // Login do Miguel (ADM Master)
             if (u === "Miguel" && (p === "260711" || p === "123")) {
-                userLogado = u; carregarApp(true); return;
+                userLogado = u; 
+                carregarApp(true); 
+                return;
             }
+
+            // Login de outros usuários
             db.ref('usuarios').once('value', (snap) => {
                 const users = snap.val();
                 let uId = null;
+                let dadosUser = null;
+
                 if(users) {
                     Object.keys(users).forEach(id => {
-                        if(users[id].nome === u && users[id].senha === p) uId = id;
+                        if(users[id].nome === u && users[id].senha === p) {
+                            uId = id;
+                            dadosUser = users[id];
+                        }
                     });
                 }
+
                 if(uId) {
-                    const user = users[uId];
-                    if(Date.now() > user.expiraEm) { alert("Acesso expirado!"); return; }
-                    if(user.telasAtivas >= user.limiteTelas) { alert("Limite de telas!"); return; }
+                    if(Date.now() > dadosUser.expiraEm) { alert("Acesso expirado!"); return; }
+                    if(dadosUser.telasAtivas >= dadosUser.limiteTelas) { alert("Limite de telas!"); return; }
+                    
                     const meuToken = Date.now().toString();
                     idSessao = uId;
+                    userLogado = u; // <--- AQUI ESTAVA O ERRO: AGORA SALVA O NOME DO USUÁRIO
+                    
                     sessionStorage.setItem('meuToken', meuToken);
-                    db.ref('usuarios/' + uId).update({ online: true, telasAtivas: (user.telasAtivas || 0) + 1, sessionToken: meuToken });
-                    carregarApp(user.isAdmin);
+                    db.ref('usuarios/' + uId).update({ 
+                        online: true, 
+                        telasAtivas: (dadosUser.telasAtivas || 0) + 1, 
+                        sessionToken: meuToken 
+                    });
+
+                    carregarApp(dadosUser.isAdmin);
                     verificarStatusSessao();
-                } else { alert("Login inválido!"); }
+                } else { 
+                    alert("Login inválido!"); 
+                }
             });
         }
 
@@ -272,16 +293,19 @@
             document.getElementById('modal').style.display = 'none';
         }
 
-        function escutarBanco() {
+                function escutarBanco() {
             db.ref('filmes').on('value', (snap) => {
                 const grid = document.getElementById('grid');
                 grid.innerHTML = "";
                 const data = snap.val();
                 if(data) {
                     Object.values(data).reverse().forEach(m => {
+                        // MUDANÇA AQUI: Se for o Miguel OU se o app estiver em modo Admin, mostra o botão
+                        const podeExcluir = (userLogado === "Miguel" || document.getElementById('mainApp').classList.contains('is-admin'));
+                        
                         grid.innerHTML += `
                             <div class="card">
-                                ${(userLogado === "Miguel") ? `<button class="del-btn" onclick="db.ref('filmes/${m.id}').remove()">Excluir</button>` : ''}
+                                ${podeExcluir ? `<button class="del-btn" onclick="db.ref('filmes/${m.id}').remove()">Excluir</button>` : ''}
                                 <div style="height:150px; background:#222; display:flex; align-items:center; justify-content:center; font-size:3rem;">🎬</div>
                                 <div class="card-info">
                                     <div class="card-title">${m.title}</div>
@@ -294,7 +318,7 @@
                 }
             });
         }
-
+        
         function filtrarFilmes() {
             const termo = document.getElementById('searchBar').value.toLowerCase();
             document.querySelectorAll('.card').forEach(card => {
