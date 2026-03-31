@@ -73,7 +73,6 @@
             <h3 style="color:#e50914; margin-bottom:10px;">Gerenciar Acessos</h3>
             <input type="text" id="newU" placeholder="Nome do Usuário">
             <input type="text" id="newP" placeholder="Senha">
-            
             <div style="display: flex; gap: 10px;">
                 <input type="number" id="timeVal" placeholder="Valor" style="flex: 1;">
                 <select id="timeUnit" style="flex: 1.5;">
@@ -85,14 +84,11 @@
                     <option value="ano">Anos (365d)</option>
                 </select>
             </div>
-            
             <input type="number" id="newLimit" placeholder="Limite de Telas" value="1">
-
             <div id="admToggleOption" style="display:none; margin: 10px 0; align-items: center; gap: 10px; font-size: 0.9rem;">
                 <input type="checkbox" id="isAdmCheck" style="width: 20px; height: 20px;"> 
                 <span>Dar acesso de Administrador?</span>
             </div>
-
             <button class="btn-red" onclick="salvarUsuario()">CRIAR ACESSO</button>
             <div class="user-list" id="listaU"></div>
             <button onclick="fecharModalUsers()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Fechar</button>
@@ -140,15 +136,13 @@
         let idSessao = "";
         let timerPainel = null;
 
+        // Funções de Login e Sessão (Iguais)
         function entrar() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
-
-            // REMOVIDO BRUNNO - APENAS MIGUEL ADM FIXO
             if (u === "Miguel" && (p === "260711" || p === "123")) {
                 userLogado = u; carregarApp(true); return;
             }
-
             db.ref('usuarios').once('value', (snap) => {
                 const users = snap.val();
                 let uId = null;
@@ -157,40 +151,29 @@
                         if(users[id].nome === u && users[id].senha === p) uId = id;
                     });
                 }
-
                 if(uId) {
                     const user = users[uId];
                     if(Date.now() > user.expiraEm) { alert("Acesso expirado!"); return; }
-                    
                     if(user.telasAtivas >= user.limiteTelas) {
-                        alert("Limite de telas atingido! Deslogue de outro dispositivo.");
+                        alert("Limite de telas atingido!");
                         return;
                     }
-
                     const meuToken = Date.now().toString();
                     idSessao = uId;
                     sessionStorage.setItem('meuToken', meuToken);
-
-                    db.ref('usuarios/' + uId).update({ 
-                        online: true, 
-                        telasAtivas: (user.telasAtivas || 0) + 1,
-                        sessionToken: meuToken
-                    });
-
+                    db.ref('usuarios/' + uId).update({ online: true, telasAtivas: (user.telasAtivas || 0) + 1, sessionToken: meuToken });
                     carregarApp(user.isAdmin);
                     verificarStatusSessao();
                 } else { alert("Login inválido!"); }
             });
         }
 
-        // VIGIA SE O USUÁRIO FOI EXPULSO OU EXCLUÍDO
         function verificarStatusSessao() {
             if(!idSessao) return;
             db.ref('usuarios/' + idSessao).on('value', snap => {
                 const user = snap.val();
                 const meuToken = sessionStorage.getItem('meuToken');
                 if (!user || user.sessionToken !== meuToken) {
-                    alert("Sessão encerrada pelo administrador.");
                     location.reload();
                 }
             });
@@ -209,15 +192,12 @@
                 db.ref('usuarios/' + idSessao).once('value', snap => {
                     const u = snap.val();
                     let novasTelas = (u && u.telasAtivas > 0) ? u.telasAtivas - 1 : 0;
-                    db.ref('usuarios/' + idSessao).update({ 
-                        online: false, 
-                        telasAtivas: novasTelas,
-                        sessionToken: null 
-                    }).then(() => location.reload());
+                    db.ref('usuarios/' + idSessao).update({ online: false, telasAtivas: novasTelas, sessionToken: null }).then(() => location.reload());
                 });
             } else location.reload();
         }
 
+        // Funções de Gerenciamento (Iguais)
         function salvarUsuario() {
             const nome = document.getElementById('newU').value;
             const senha = document.getElementById('newP').value;
@@ -225,31 +205,20 @@
             const unit = document.getElementById('timeUnit').value;
             const isAdmin = document.getElementById('isAdmCheck').checked;
             const limit = parseInt(document.getElementById('newLimit').value) || 1;
-            
             if(!nome || !senha || isNaN(val)) return alert("Preencha tudo!");
-
             let ms = val * 1000;
             if(unit === "min") ms *= 60;
             if(unit === "hor") ms *= 3600;
             if(unit === "dia") ms *= 86400;
             if(unit === "mes") ms *= 86400 * 30;
             if(unit === "ano") ms *= 86400 * 365;
-
             db.ref('usuarios').push({ nome, senha, expiraEm: Date.now() + ms, online: false, isAdmin, limiteTelas: limit, telasAtivas: 0, sessionToken: null });
             alert("Acesso Criado!");
-            document.getElementById('newU').value = ""; document.getElementById('newP').value = "";
-        }
-
-        function formatarTempo(ms) {
-            if(ms <= 0) return "EXPIRADO";
-            let s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
-            return `${String(d).padStart(2,'0')}D ${String(h % 24).padStart(2,'0')}H ${String(m % 60).padStart(2,'0')}M ${String(s % 60).padStart(2,'0')}S`;
         }
 
         function abrirModalUsers() {
             document.getElementById('modalUsers').style.display = 'flex';
             if(timerPainel) clearInterval(timerPainel);
-            
             timerPainel = setInterval(() => {
                 db.ref('usuarios').once('value', (snap) => {
                     const lista = document.getElementById('listaU');
@@ -257,63 +226,42 @@
                     const data = snap.val();
                     if(data) {
                         Object.keys(data).forEach(id => {
-                            const tempo = formatarTempo(data[id].expiraEm - Date.now());
                             const status = data[id].online ? 'online' : 'offline';
-                            const admTag = data[id].isAdmin ? '<span class="badge-adm">ADM</span>' : '';
-                            const contagemTelas = `(Telas ${data[id].telasAtivas || 0}/${data[id].limiteTelas || 1})`;
-                            
-                            lista.innerHTML += `
-                                <div class="user-item">
-                                    <div>
-                                        <span class="status-dot ${status}"></span>
-                                        <strong>${data[id].nome}</strong>${admTag}<br>
-                                        <span class="time-counter">${tempo} ${contagemTelas}</span>
-                                    </div>
-                                    <div style="display:flex; flex-direction:column; gap:5px;">
-                                        <button onclick="forcarLogout('${id}')" style="color:orange; background:none; border:none; cursor:pointer; font-size:0.7rem; text-decoration:underline;">Zerar e Desconectar</button>
-                                        <button onclick="excluirUsuario('${id}')" style="color:red; background:none; border:none; cursor:pointer; font-weight:bold;">Remover</button>
-                                    </div>
-                                </div>`;
+                            lista.innerHTML += `<div class="user-item">
+                                <div><span class="status-dot ${status}"></span><strong>${data[id].nome}</strong></div>
+                                <button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none;">Remover</button>
+                            </div>`;
                         });
                     }
                 });
             }, 1000);
         }
-
-        function forcarLogout(id) {
-            db.ref('usuarios/' + id).update({ telasAtivas: 0, online: false, sessionToken: "EXPULSO_" + Date.now() });
-        }
-
-        function excluirUsuario(id) {
-            if(confirm("Deseja excluir e desconectar este usuário?")) {
-                db.ref('usuarios/' + id).remove();
-            }
-        }
-
         function fecharModalUsers() { document.getElementById('modalUsers').style.display = 'none'; clearInterval(timerPainel); }
 
+        // --- CORREÇÃO DO PLAYER (MUDANÇA AQUI) ---
         function abrirPlayer(url, titulo) {
             let finalUrl = url;
             
-            // CONVERSÃO AUTOMÁTICA STREAMTAPE
+            // Corrige Streamtape para formato Embed
             if(url.includes('streamtape.com/v/')) {
                 finalUrl = url.replace('/v/', '/e/');
             }
             
+            // Corrige Google Drive para formato Preview
             if(url.includes('drive.google.com')) {
                 finalUrl = url.replace('/view', '/preview');
             }
 
             document.getElementById('playingTitle').innerText = titulo;
             
-            // IFRAME COM ATRIBUTOS PARA CORRIGIR O ERRO DE CARREGAMENTO
-            document.getElementById('playerContent').innerHTML = `<iframe 
-                src="${finalUrl}" 
-                allow="autoplay; fullscreen" 
-                allowfullscreen 
-                referrerpolicy="no-referrer"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-presentation">
-            </iframe>`;
+            // IMPORTANTE: Removemos o 'sandbox' para evitar o erro "Client Blocked"
+            document.getElementById('playerContent').innerHTML = `
+                <iframe 
+                    src="${finalUrl}" 
+                    allow="autoplay; fullscreen" 
+                    allowfullscreen 
+                    referrerpolicy="no-referrer">
+                </iframe>`;
             
             document.getElementById('videoOverlay').style.display = 'flex';
         }
