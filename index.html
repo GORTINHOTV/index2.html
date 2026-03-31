@@ -140,48 +140,63 @@
         let idSessao = "";
         let timerPainel = null;
 
-        function entrar() {
+                function entrar() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
 
             if (u === "Miguel" && (p === "260711" || p === "123")) {
-                userLogado = u; carregarApp(true); return;
+                userLogado = u; 
+                carregarApp(true); 
+                return;
             }
 
-            db.ref('usuarios').once('value', (snap) => {
+            db.ref('usuarios').once('value').then((snap) => {
                 const users = snap.val();
                 let uId = null;
+                let dadosUser = null;
+
                 if(users) {
                     Object.keys(users).forEach(id => {
-                        if(users[id].nome === u && users[id].senha === p) uId = id;
+                        if(users[id].nome === u && users[id].senha === p) {
+                            uId = id;
+                            dadosUser = users[id];
+                        }
                     });
                 }
 
-                if(uId) {
-                    const user = users[uId];
-                    if(Date.now() > user.expiraEm) { alert("Acesso expirado!"); return; }
+                if(uId && dadosUser) {
+                    if(Date.now() > dadosUser.expiraEm) { 
+                        alert("Acesso expirado!"); 
+                        return; 
+                    }
                     
-                    if(user.telasAtivas >= user.limiteTelas) {
-                        alert("Limite de telas atingido! Deslogue de outro dispositivo.");
+                    if(dadosUser.telasAtivas >= dadosUser.limiteTelas) {
+                        alert("Limite de telas atingido!");
                         return;
                     }
 
                     const meuToken = Date.now().toString();
                     idSessao = uId;
+                    userLogado = u;
                     sessionStorage.setItem('meuToken', meuToken);
 
                     db.ref('usuarios/' + uId).update({ 
                         online: true, 
-                        telasAtivas: (user.telasAtivas || 0) + 1,
+                        telasAtivas: (dadosUser.telasAtivas || 0) + 1,
                         sessionToken: meuToken
                     });
 
-                    carregarApp(user.isAdmin);
+                    carregarApp(dadosUser.isAdmin);
                     verificarStatusSessao();
-                } else { alert("Login inválido!"); }
+                } else { 
+                    alert("Login inválido!"); 
+                }
+            }).catch(e => {
+                console.error("Erro ao conectar:", e);
+                alert("Erro na rede ou banco de dados.");
             });
         }
-
+        
         function verificarStatusSessao() {
             if(!idSessao) return;
             db.ref('usuarios/' + idSessao).on('value', snap => {
