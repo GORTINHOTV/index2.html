@@ -37,6 +37,7 @@
 
         #videoOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; flex-direction: column; }
         .player-header { padding: 15px; background: #141414; display: flex; justify-content: space-between; align-items: center; }
+        #playerContent { flex: 1; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -112,7 +113,7 @@
             <span id="playingTitle" style="font-weight:bold;">Assistindo...</span>
             <button onclick="fecharPlayer()" style="background:#e50914; color:white; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">FECHAR X</button>
         </div>
-        <div id="playerContent" style="width:100%; height:100%;"></div>
+        <div id="playerContent"></div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -136,7 +137,6 @@
         let idSessao = "";
         let timerPainel = null;
 
-        // Funções de Login e Sessão (Iguais)
         function entrar() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
@@ -154,10 +154,7 @@
                 if(uId) {
                     const user = users[uId];
                     if(Date.now() > user.expiraEm) { alert("Acesso expirado!"); return; }
-                    if(user.telasAtivas >= user.limiteTelas) {
-                        alert("Limite de telas atingido!");
-                        return;
-                    }
+                    if(user.telasAtivas >= user.limiteTelas) { alert("Limite de telas!"); return; }
                     const meuToken = Date.now().toString();
                     idSessao = uId;
                     sessionStorage.setItem('meuToken', meuToken);
@@ -173,9 +170,7 @@
             db.ref('usuarios/' + idSessao).on('value', snap => {
                 const user = snap.val();
                 const meuToken = sessionStorage.getItem('meuToken');
-                if (!user || user.sessionToken !== meuToken) {
-                    location.reload();
-                }
+                if (!user || user.sessionToken !== meuToken) location.reload();
             });
         }
 
@@ -191,13 +186,12 @@
             if(idSessao) {
                 db.ref('usuarios/' + idSessao).once('value', snap => {
                     const u = snap.val();
-                    let novasTelas = (u && u.telasAtivas > 0) ? u.telasAtivas - 1 : 0;
-                    db.ref('usuarios/' + idSessao).update({ online: false, telasAtivas: novasTelas, sessionToken: null }).then(() => location.reload());
+                    let nt = (u && u.telasAtivas > 0) ? u.telasAtivas - 1 : 0;
+                    db.ref('usuarios/' + idSessao).update({ online: false, telasAtivas: nt, sessionToken: null }).then(() => location.reload());
                 });
             } else location.reload();
         }
 
-        // Funções de Gerenciamento (Iguais)
         function salvarUsuario() {
             const nome = document.getElementById('newU').value;
             const senha = document.getElementById('newP').value;
@@ -229,7 +223,7 @@
                             const status = data[id].online ? 'online' : 'offline';
                             lista.innerHTML += `<div class="user-item">
                                 <div><span class="status-dot ${status}"></span><strong>${data[id].nome}</strong></div>
-                                <button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none;">Remover</button>
+                                <button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none; cursor:pointer;">Remover</button>
                             </div>`;
                         });
                     }
@@ -238,29 +232,30 @@
         }
         function fecharModalUsers() { document.getElementById('modalUsers').style.display = 'none'; clearInterval(timerPainel); }
 
-        // --- CORREÇÃO DO PLAYER (MUDANÇA AQUI) ---
+        // --- FUNÇÃO CORRIGIDA PARA STREAMTAPE ---
         function abrirPlayer(url, titulo) {
             let finalUrl = url;
             
-            // Corrige Streamtape para formato Embed
-            if(url.includes('streamtape.com/v/')) {
-                finalUrl = url.replace('/v/', '/e/');
+            if(url.includes('streamtape.com')) {
+                // Força o formato de embed e remove parâmetros extras do link original
+                finalUrl = url.replace('/v/', '/e/').split('?')[0];
             }
             
-            // Corrige Google Drive para formato Preview
             if(url.includes('drive.google.com')) {
                 finalUrl = url.replace('/view', '/preview');
             }
 
             document.getElementById('playingTitle').innerText = titulo;
             
-            // IMPORTANTE: Removemos o 'sandbox' para evitar o erro "Client Blocked"
+            // REMOVIDO SANDBOX: O Streamtape precisa de scripts e same-origin para validar o player
+            // Adicionado "no-referrer-when-downgrade" para melhor compatibilidade
             document.getElementById('playerContent').innerHTML = `
                 <iframe 
                     src="${finalUrl}" 
                     allow="autoplay; fullscreen" 
                     allowfullscreen 
-                    referrerpolicy="no-referrer">
+                    referrerpolicy="no-referrer-when-downgrade"
+                    style="width:100%; height:100%; position:absolute; top:0; left:0;">
                 </iframe>`;
             
             document.getElementById('videoOverlay').style.display = 'flex';
