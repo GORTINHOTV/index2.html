@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -71,6 +70,43 @@
         <div class="container"><div id="grid" class="grid"></div></div>
     </div>
 
+    <div id="modalUsers" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
+        <div class="login-box" style="text-align: left; max-width: 450px;">
+            <h3 style="color:#e50914; margin-bottom:10px;">Gerenciar Acessos</h3>
+            <input type="text" id="newU" placeholder="Nome do Usuário">
+            <input type="text" id="newP" placeholder="Senha">
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="timeVal" placeholder="Valor" style="flex: 1;">
+                <select id="timeUnit" style="flex: 1.5;">
+                    <option value="min">Minutos</option>
+                    <option value="hor">Horas</option>
+                    <option value="dia" selected>Dias</option>
+                    <option value="mes">Meses</option>
+                </select>
+            </div>
+            <input type="number" id="newLimit" placeholder="Limite de Telas" value="1">
+            <div id="admToggleOption" style="display:none; margin: 10px 0; align-items: center; gap: 10px; font-size: 0.9rem;">
+                <input type="checkbox" id="isAdmCheck" style="width: 18px; height: 18px;"> 
+                <span>Dar acesso de Administrador?</span>
+            </div>
+            <button class="btn-red" onclick="salvarUsuario()">CRIAR ACESSO</button>
+            <div class="user-list" id="listaU"></div>
+            <button onclick="fecharModalUsers()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Fechar</button>
+        </div>
+    </div>
+
+    <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
+        <div class="login-box" style="text-align: left;">
+            <h3 style="color:#e50914;">Novo Filme</h3>
+            <input type="text" id="fUrl" placeholder="Link do Filme (Streamtape, Drive, MP4...)">
+            <input type="text" id="fTitle" placeholder="Título">
+            <input type="number" id="fRating" placeholder="Nota (1-10)">
+            <textarea id="fDesc" placeholder="Sinopse"></textarea>
+            <button class="btn-red" onclick="salvarNoFirebase()">SALVAR NA NUVEM</button>
+            <button onclick="document.getElementById('modal').style.display='none'" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancelar</button>
+        </div>
+    </div>
+
     <div id="videoOverlay">
         <div class="player-header">
             <span id="playingTitle" style="font-weight:bold;">Assistindo...</span>
@@ -83,7 +119,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <script>
-        // Configuração do Firebase mantida
         const firebaseConfig = {
             apiKey: "AIzaSyAnzpPFdXKzmQbEOkAyY9Y1PJ1tl8cX5VA",
             authDomain: "gordinhotv-25f29.firebaseapp.com",
@@ -96,19 +131,52 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // --- FUNÇÃO AUTO-ACORDAR ---
-        // Tenta dar um "ping" no servidor do Render assim que a página carrega
-        (function acordarServidor() {
-            const urlAcordar = "https://filetolink-fwr5.onrender.com/";
-            fetch(urlAcordar, { mode: 'no-cors' }).then(() => {
-                console.log("Sinal de despertar enviado ao Render...");
-            }).catch(e => console.log("Servidor em standby."));
-        })();
-
         let userLogado = "";
         let idSessao = "";
 
-        // Funções de login e interface mantidas conforme original...
+        // FUNÇÃO PARA RODAR STREAMTAPE E OUTROS
+        function abrirPlayer(url, titulo) {
+            document.getElementById('playingTitle').innerText = titulo;
+            const container = document.getElementById('playerContent');
+            container.innerHTML = ""; 
+
+            let finalUrl = url;
+
+            // 1. AJUSTE PARA STREAMTAPE (Troca /v/ por /e/ para abrir o player direto)
+            if(url.includes('streamtape.com/v/')) {
+                finalUrl = url.replace('/v/', '/e/');
+            }
+
+            // 2. AJUSTE PARA GOOGLE DRIVE
+            if(url.includes('drive.google.com')) {
+                finalUrl = url.replace('/view', '/preview');
+            }
+
+            // DETECÇÃO DE TIPO DE PLAYER
+            const isDirectFile = url.toLowerCase().match(/\.(mp4|mkv|webm|ogg|mov)$/);
+
+            if (isDirectFile) {
+                // Player Nativo para arquivos diretos
+                container.innerHTML = `
+                    <video id="mainVideo" controls autoplay playsinline preload="auto" style="width:100%; height:100%; background:#000;">
+                        <source src="${finalUrl}" type="video/mp4">
+                        Seu navegador não suporta vídeos.
+                    </video>`;
+            } else {
+                // Iframe com SANDBOX para bloquear anúncios do Streamtape
+                container.innerHTML = `
+                    <iframe src="${finalUrl}" 
+                        sandbox="allow-forms allow-scripts allow-pointer-lock allow-same-origin allow-top-navigation" 
+                        allow="autoplay; fullscreen" 
+                        allowfullscreen 
+                        style="width:100%; height:100%; border:none;">
+                    </iframe>`;
+            }
+            
+            document.getElementById('videoOverlay').style.display = 'flex';
+        }
+
+        // Lógica de Login, Firebase e Interface mantidas...
         function entrar() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
@@ -126,11 +194,7 @@
                 if(uId) {
                     const user = users[uId];
                     if(Date.now() > user.expiraEm) { alert("Acesso expirado!"); return; }
-                    if(user.telasAtivas >= user.limiteTelas) { alert("Limite de telas atingido!"); return; }
-                    const meuToken = Date.now().toString();
                     idSessao = uId;
-                    sessionStorage.setItem('meuToken', meuToken);
-                    db.ref('usuarios/' + uId).update({ online: true, telasAtivas: (user.telasAtivas || 0) + 1, sessionToken: meuToken });
                     carregarApp(user.isAdmin);
                 } else { alert("Login inválido!"); }
             });
@@ -140,43 +204,20 @@
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             if(isAdmin) document.getElementById('mainApp').classList.add('is-admin');
+            if(userLogado === "Miguel") document.getElementById('admToggleOption').style.display = 'flex';
             escutarBanco();
-        }
-
-        // --- FUNÇÃO ABRIR PLAYER (COM PING DE SEGURANÇA) ---
-        function abrirPlayer(url, titulo) {
-            document.getElementById('playingTitle').innerText = titulo;
-            const container = document.getElementById('playerContent');
-            container.innerHTML = "<div style='margin:auto; color:white;'>Acordando servidor do filme... aguarde 5 segundos...</div>"; 
-
-            // Dá um "cutuco" no link específico antes de carregar
-            fetch(url, { mode: 'no-cors' });
-
-            setTimeout(() => {
-                const isWatchPage = url.includes('filetolink') || url.includes('/watch/');
-                const isDirectFile = url.toLowerCase().match(/\.(mp4|mkv|webm|ogg|mov)$/) || (url.includes('render.com') && !isWatchPage);
-
-                if (isDirectFile) {
-                    container.innerHTML = `
-                        <video id="mainVideo" controls autoplay playsinline preload="auto" style="width:100%; height:100%; background:#000;">
-                            <source src="${url}" type="video/mp4">
-                            Seu navegador não suporta vídeos.
-                        </video>`;
-                    const video = document.getElementById('mainVideo');
-                    video.play().catch(e => console.log("Interação necessária para play."));
-                } else {
-                    let finalUrl = url;
-                    if(url.includes('drive.google.com')) finalUrl = url.replace('/view', '/preview');
-                    container.innerHTML = `<iframe src="${finalUrl}" allow="autoplay; fullscreen" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
-                }
-            }, 1500); // Pequeno delay para o servidor reagir ao fetch inicial
-            
-            document.getElementById('videoOverlay').style.display = 'flex';
         }
 
         function fecharPlayer() { 
             document.getElementById('playerContent').innerHTML = ""; 
             document.getElementById('videoOverlay').style.display = 'none'; 
+        }
+
+        function salvarNoFirebase() {
+            const movie = { title: document.getElementById('fTitle').value, url: document.getElementById('fUrl').value, rating: document.getElementById('fRating').value, desc: document.getElementById('fDesc').value, id: Date.now() };
+            if(!movie.title || !movie.url) return alert("Preencha título e link!");
+            db.ref('filmes/' + movie.id).set(movie);
+            document.getElementById('modal').style.display = 'none';
         }
 
         function escutarBanco() {
@@ -192,7 +233,7 @@
                                 <div style="height:160px; background:#222; display:flex; align-items:center; justify-content:center; font-size:3rem; color:#444;">🎬</div>
                                 <div class="card-info">
                                     <div class="card-title" style="font-weight:bold; margin-bottom:5px;">${m.title}</div>
-                                    <div style="color:gold; font-size:0.8rem; margin-bottom:10px;">⭐ ${m.rating || 'N/A'}/10</div>
+                                    <div style="color:gold; font-size:0.8rem; margin-bottom:10px;">⭐ ${m.rating || '0'}/10</div>
                                     <p style="font-size:0.75rem; color:#aaa; height:40px; overflow:hidden;">${m.desc || ''}</p>
                                     <button class="play-btn" onclick="abrirPlayer('${m.url}', '${m.title}')">ASSISTIR AGORA</button>
                                 </div>
@@ -201,8 +242,16 @@
                 }
             });
         }
-        
-        // Outras funções (salvarNoFirebase, filtrarFilmes, etc) devem ser mantidas aqui abaixo...
+
+        function filtrarFilmes() {
+            const termo = document.getElementById('searchBar').value.toLowerCase();
+            document.querySelectorAll('.card').forEach(card => {
+                const title = card.querySelector('.card-title').innerText.toLowerCase();
+                card.style.display = title.includes(termo) ? 'block' : 'none';
+            });
+        }
+
+        function sair() { location.reload(); }
     </script>
 </body>
 </html>
