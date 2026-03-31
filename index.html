@@ -25,20 +25,12 @@
         .card { background: #181818; border-radius: 8px; overflow: hidden; position: relative; border: 1px solid #222; }
         .card-info { padding: 15px; }
         .play-btn { width: 100%; padding: 10px; background: white; color: black; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .del-btn { position: absolute; top: 5px; right: 5px; background: rgba(255,0,0,0.7); border: none; color: white; padding: 5px; border-radius: 5px; cursor: pointer; z-index: 10; }
+        .del-btn { position: absolute; top: 5px; right: 5px; background: rgba(229, 9, 20, 0.9); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; z-index: 10; font-weight: bold; font-size: 0.7rem; }
         
-        .user-list { margin-top: 15px; background: #222; border-radius: 5px; max-height: 300px; overflow-y: auto; text-align: left; padding: 10px; }
-        .user-item { padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .online { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
-        .offline { background: #555; }
-        .time-counter { font-family: monospace; font-size: 0.75rem; color: #e50914; font-weight: bold; }
-        .badge-adm { background: gold; color: black; font-size: 0.6rem; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
-
         #videoOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; flex-direction: column; }
         .player-header { padding: 15px; background: #141414; display: flex; justify-content: space-between; align-items: center; }
-        #playerContent { flex: 1; position: relative; }
-        iframe { width: 100%; height: 100%; border: none; }
+        #playerContent { flex: 1; position: relative; background: #000; }
+        iframe { width: 100%; height: 100%; border: none; position: absolute; top:0; left:0; }
     </style>
 </head>
 <body>
@@ -58,7 +50,6 @@
                 <div class="header-top">
                     <div style="font-size: 1.5rem; font-weight: bold; color:#e50914;">GORTINHO TV</div>
                     <div>
-                        <button class="admin-only" onclick="abrirModalUsers()" style="background:#333; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; margin-right:5px;">👥 USUÁRIOS</button>
                         <button class="admin-only" onclick="document.getElementById('modal').style.display='flex'" style="background:#e50914; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">+ ADD FILME</button>
                         <button onclick="sair()" style="background:none; color:gray; border:none; padding:8px; cursor:pointer; font-size:0.8rem;">Sair</button>
                     </div>
@@ -67,33 +58,6 @@
             </div>
         </header>
         <div class="container"><div id="grid" class="grid"></div></div>
-    </div>
-
-    <div id="modalUsers" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
-        <div class="login-box" style="text-align: left; max-width: 450px;">
-            <h3 style="color:#e50914; margin-bottom:10px;">Gerenciar Acessos</h3>
-            <input type="text" id="newU" placeholder="Nome do Usuário">
-            <input type="text" id="newP" placeholder="Senha">
-            <div style="display: flex; gap: 10px;">
-                <input type="number" id="timeVal" placeholder="Valor" style="flex: 1;">
-                <select id="timeUnit" style="flex: 1.5;">
-                    <option value="seg">Segundos</option>
-                    <option value="min">Minutos</option>
-                    <option value="hor">Horas</option>
-                    <option value="dia">Dias</option>
-                    <option value="mes">Meses (30d)</option>
-                    <option value="ano">Anos (365d)</option>
-                </select>
-            </div>
-            <input type="number" id="newLimit" placeholder="Limite de Telas" value="1">
-            <div id="admToggleOption" style="display:none; margin: 10px 0; align-items: center; gap: 10px; font-size: 0.9rem;">
-                <input type="checkbox" id="isAdmCheck" style="width: 20px; height: 20px;"> 
-                <span>Dar acesso de Administrador?</span>
-            </div>
-            <button class="btn-red" onclick="salvarUsuario()">CRIAR ACESSO</button>
-            <div class="user-list" id="listaU"></div>
-            <button onclick="fecharModalUsers()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Fechar</button>
-        </div>
     </div>
 
     <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
@@ -133,131 +97,35 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        let userLogado = "";
-        let idSessao = "";
-        let timerPainel = null;
+        let isAdminAtivo = false;
 
         function entrar() {
             const u = document.getElementById('user').value;
             const p = document.getElementById('pass').value;
             if (u === "Miguel" && (p === "260711" || p === "123")) {
-                userLogado = u; carregarApp(true); return;
+                isAdminAtivo = true;
+                carregarApp(true);
+                return;
             }
-            db.ref('usuarios').once('value', (snap) => {
-                const users = snap.val();
-                let uId = null;
-                if(users) {
-                    Object.keys(users).forEach(id => {
-                        if(users[id].nome === u && users[id].senha === p) uId = id;
-                    });
-                }
-                if(uId) {
-                    const user = users[uId];
-                    if(Date.now() > user.expiraEm) { alert("Acesso expirado!"); return; }
-                    if(user.telasAtivas >= user.limiteTelas) { alert("Limite de telas!"); return; }
-                    const meuToken = Date.now().toString();
-                    idSessao = uId;
-                    sessionStorage.setItem('meuToken', meuToken);
-                    db.ref('usuarios/' + uId).update({ online: true, telasAtivas: (user.telasAtivas || 0) + 1, sessionToken: meuToken });
-                    carregarApp(user.isAdmin);
-                    verificarStatusSessao();
-                } else { alert("Login inválido!"); }
-            });
-        }
-
-        function verificarStatusSessao() {
-            if(!idSessao) return;
-            db.ref('usuarios/' + idSessao).on('value', snap => {
-                const user = snap.val();
-                const meuToken = sessionStorage.getItem('meuToken');
-                if (!user || user.sessionToken !== meuToken) location.reload();
-            });
+            alert("Acesso Negado!");
         }
 
         function carregarApp(isAdmin) {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
             if(isAdmin) document.getElementById('mainApp').classList.add('is-admin');
-            if(userLogado === "Miguel") document.getElementById('admToggleOption').style.display = 'flex';
             escutarBanco();
         }
 
-        function sair() {
-            if(idSessao) {
-                db.ref('usuarios/' + idSessao).once('value', snap => {
-                    const u = snap.val();
-                    let nt = (u && u.telasAtivas > 0) ? u.telasAtivas - 1 : 0;
-                    db.ref('usuarios/' + idSessao).update({ online: false, telasAtivas: nt, sessionToken: null }).then(() => location.reload());
-                });
-            } else location.reload();
-        }
+        function sair() { location.reload(); }
 
-        function salvarUsuario() {
-            const nome = document.getElementById('newU').value;
-            const senha = document.getElementById('newP').value;
-            const val = parseInt(document.getElementById('timeVal').value);
-            const unit = document.getElementById('timeUnit').value;
-            const isAdmin = document.getElementById('isAdmCheck').checked;
-            const limit = parseInt(document.getElementById('newLimit').value) || 1;
-            if(!nome || !senha || isNaN(val)) return alert("Preencha tudo!");
-            let ms = val * 1000;
-            if(unit === "min") ms *= 60;
-            if(unit === "hor") ms *= 3600;
-            if(unit === "dia") ms *= 86400;
-            if(unit === "mes") ms *= 86400 * 30;
-            if(unit === "ano") ms *= 86400 * 365;
-            db.ref('usuarios').push({ nome, senha, expiraEm: Date.now() + ms, online: false, isAdmin, limiteTelas: limit, telasAtivas: 0, sessionToken: null });
-            alert("Acesso Criado!");
-        }
-
-        function abrirModalUsers() {
-            document.getElementById('modalUsers').style.display = 'flex';
-            if(timerPainel) clearInterval(timerPainel);
-            timerPainel = setInterval(() => {
-                db.ref('usuarios').once('value', (snap) => {
-                    const lista = document.getElementById('listaU');
-                    lista.innerHTML = "";
-                    const data = snap.val();
-                    if(data) {
-                        Object.keys(data).forEach(id => {
-                            const status = data[id].online ? 'online' : 'offline';
-                            lista.innerHTML += `<div class="user-item">
-                                <div><span class="status-dot ${status}"></span><strong>${data[id].nome}</strong></div>
-                                <button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none; cursor:pointer;">Remover</button>
-                            </div>`;
-                        });
-                    }
-                });
-            }, 1000);
-        }
-        function fecharModalUsers() { document.getElementById('modalUsers').style.display = 'none'; clearInterval(timerPainel); }
-
-        // --- FUNÇÃO CORRIGIDA PARA STREAMTAPE ---
         function abrirPlayer(url, titulo) {
             let finalUrl = url;
-            
-            if(url.includes('streamtape.com')) {
-                // Força o formato de embed e remove parâmetros extras do link original
-                finalUrl = url.replace('/v/', '/e/').split('?')[0];
-            }
-            
-            if(url.includes('drive.google.com')) {
-                finalUrl = url.replace('/view', '/preview');
-            }
+            if(url.includes('streamtape.com')) finalUrl = url.replace('/v/', '/e/').split('?')[0];
+            if(url.includes('drive.google.com')) finalUrl = url.replace('/view', '/preview');
 
             document.getElementById('playingTitle').innerText = titulo;
-            
-            // REMOVIDO SANDBOX: O Streamtape precisa de scripts e same-origin para validar o player
-            // Adicionado "no-referrer-when-downgrade" para melhor compatibilidade
-            document.getElementById('playerContent').innerHTML = `
-                <iframe 
-                    src="${finalUrl}" 
-                    allow="autoplay; fullscreen" 
-                    allowfullscreen 
-                    referrerpolicy="no-referrer-when-downgrade"
-                    style="width:100%; height:100%; position:absolute; top:0; left:0;">
-                </iframe>`;
-            
+            document.getElementById('playerContent').innerHTML = `<iframe src="${finalUrl}" allow="autoplay; fullscreen" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>`;
             document.getElementById('videoOverlay').style.display = 'flex';
         }
 
@@ -267,8 +135,9 @@
         }
 
         function salvarNoFirebase() {
-            const movie = { title: document.getElementById('fTitle').value, url: document.getElementById('fUrl').value, rating: document.getElementById('fRating').value, desc: document.getElementById('fDesc').value, id: Date.now() };
-            db.ref('filmes/' + movie.id).set(movie);
+            const id = Date.now();
+            const movie = { title: document.getElementById('fTitle').value, url: document.getElementById('fUrl').value, rating: document.getElementById('fRating').value, desc: document.getElementById('fDesc').value, id: id };
+            db.ref('filmes/' + id).set(movie);
             document.getElementById('modal').style.display = 'none';
         }
 
@@ -279,9 +148,10 @@
                 const data = snap.val();
                 if(data) {
                     Object.values(data).reverse().forEach(m => {
+                        let btnDel = isAdminAtivo ? `<button class="del-btn" onclick="deletarFilme('${m.id}')">Excluir X</button>` : '';
                         grid.innerHTML += `
-                            <div class="card">
-                                ${(userLogado === "Miguel") ? `<button class="del-btn" onclick="db.ref('filmes/${m.id}').remove()">Excluir</button>` : ''}
+                            <div class="card" id="card-${m.id}">
+                                ${btnDel}
                                 <div style="height:150px; background:#222; display:flex; align-items:center; justify-content:center; font-size:3rem;">🎬</div>
                                 <div class="card-info">
                                     <div class="card-title">${m.title}</div>
@@ -293,6 +163,21 @@
                     });
                 }
             });
+        }
+
+        // FUNÇÃO DE EXCLUSÃO "FORÇADA" PARA LIMPAR O BANCO
+        function deletarFilme(id) {
+            if(confirm("Deseja realmente apagar este filme permanentemente?")) {
+                // Remove do banco de dados
+                db.ref('filmes/' + id).remove()
+                .then(() => {
+                    // Remove visualmente da tela na hora, caso o Firebase demore a responder
+                    const card = document.getElementById('card-' + id);
+                    if(card) card.remove();
+                    console.log("Removido com sucesso.");
+                })
+                .catch((e) => alert("Erro ao deletar: " + e.message));
+            }
         }
 
         function filtrarFilmes() {
