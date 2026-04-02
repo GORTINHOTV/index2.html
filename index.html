@@ -33,13 +33,11 @@
         .online { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
         .offline { background: #555; }
         .time-counter { font-family: monospace; font-size: 0.75rem; color: #e50914; font-weight: bold; }
+        .badge-adm { background: gold; color: black; font-size: 0.6rem; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
 
         #videoOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; flex-direction: column; }
         .player-header { padding: 15px; background: #141414; display: flex; justify-content: space-between; align-items: center; }
         iframe { width: 100%; height: 100%; border: none; }
-        
-        /* Estilo da lista da lupa */
-        .tmdb-item:hover { background: #444 !important; }
     </style>
 </head>
 <body>
@@ -100,18 +98,18 @@
             <h3 style="color:#e50914;">Novo Filme</h3>
             
             <div style="display: flex; gap: 5px;">
-                <input type="text" id="tmdbSearch" placeholder="Nome do filme...">
-                <button onclick="buscarNoTMDB()" style="background: #222; color: white; border: 1px solid #444; padding: 5px 10px; border-radius: 5px; cursor: pointer;">🔍</button>
+                <input type="text" id="tmdbSearch" placeholder="Digite o nome do filme...">
+                <button onclick="buscarNoTMDB()" style="background: #e50914; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer;">🔍</button>
             </div>
-            <div id="tmdbResults" style="display:none; background:#222; margin-top:5px; border-radius:5px; max-height:150px; overflow-y:auto; border:1px solid #444; font-size:0.8rem;"></div>
+            <div id="tmdbResults" style="display:none; background:#222; margin-top:2px; border-radius:5px; max-height:150px; overflow-y:auto; border:1px solid #444; font-size:0.8rem;"></div>
 
             <input type="text" id="fUrl" placeholder="Link do Filme">
             <input type="text" id="fTitle" placeholder="Título">
-            <input type="hidden" id="fPoster">
-            <input type="number" id="fRating" placeholder="Nota (1-10)">
+            <input type="hidden" id="fPoster"> <input type="number" id="fRating" placeholder="Nota (1-10)">
             <textarea id="fDesc" placeholder="Sinopse"></textarea>
+            
             <button class="btn-red" onclick="salvarNoFirebase()">SALVAR NA NUVEM</button>
-            <button onclick="fecharModalFilme()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancelar</button>
+            <button onclick="fecharModalAdd()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancelar</button>
         </div>
     </div>
 
@@ -139,13 +137,13 @@
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
-        const TMDB_KEY = "8e6a4fe3b8b0c240511a0c5cc382ca81";
+        const TMDB_KEY = "8e6a4fe3b8b0c240511a0c5cc382ca81"; // Sua chave
 
         let userLogado = "";
         let idSessao = "";
         let timerPainel = null;
 
-        // FUNÇÃO DA LUPA (LISTA DE ESCOLHA)
+        // --- LÓGICA DE BUSCA AUTOMÁTICA ---
         async function buscarNoTMDB() {
             const query = document.getElementById('tmdbSearch').value;
             if (!query) return alert("Digite o nome!");
@@ -158,11 +156,9 @@
                 if (data.results && data.results.length > 0) {
                     lista.style.display = "block";
                     data.results.forEach(f => {
-                        const ano = f.release_date ? f.release_date.split('-')[0] : 'S/A';
                         const item = document.createElement('div');
-                        item.className = "tmdb-item";
-                        item.style = "padding:10px; border-bottom:1px solid #333; cursor:pointer; color:white; background:#333;";
-                        item.innerHTML = `<strong>${f.title}</strong> (${ano})`;
+                        item.style = "padding:10px; border-bottom:1px solid #333; cursor:pointer;";
+                        item.innerHTML = `<strong>${f.title}</strong> (${f.release_date ? f.release_date.split('-')[0] : 'S/A'})`;
                         item.onclick = () => {
                             document.getElementById('fTitle').value = f.title;
                             document.getElementById('fRating').value = f.vote_average.toFixed(1);
@@ -173,49 +169,75 @@
                         };
                         lista.appendChild(item);
                     });
-                } else { alert("Nenhum filme encontrado."); }
+                } else { alert("Não achei nada."); }
             } catch (e) { alert("Erro na busca."); }
         }
 
-        function fecharModalFilme() {
+        function fecharModalAdd() {
             document.getElementById('modal').style.display='none';
-            document.getElementById('tmdbResults').style.display = "none";
+            document.getElementById('tmdbResults').style.display='none';
         }
 
         function entrar() {
             const u = document.getElementById('user').value.trim();
             const p = document.getElementById('pass').value.trim();
+
             if (u === "Miguel" && (p === "260711" || p === "123")) {
-                userLogado = "Miguel"; carregarApp(true); return;
+                userLogado = "Miguel";
+                carregarApp(true);
+                return;
             }
+
             db.ref('usuarios').once('value').then((snap) => {
                 const users = snap.val();
-                let uId = null; let dadosUser = null;
+                let uId = null;
+                let dadosUser = null;
+
                 if (users) {
                     Object.keys(users).forEach(key => {
                         if (users[key].nome === u && users[key].senha === p) {
-                            uId = key; dadosUser = users[key];
+                            uId = key;
+                            dadosUser = users[key];
                         }
                     });
                 }
+
                 if (uId && dadosUser) {
-                    if (Date.now() > dadosUser.expiraEm) return alert("Acesso expirado!");
-                    userLogado = u; idSessao = uId;
+                    if (Date.now() > dadosUser.expiraEm) {
+                        alert("Acesso expirado!");
+                        return;
+                    }
+
+                    userLogado = u;
+                    idSessao = uId;
                     const token = Date.now().toString();
                     sessionStorage.setItem('meuToken', token);
-                    db.ref('usuarios/' + uId).update({ online: true, sessionToken: token }).catch(e => {});
+
+                    db.ref('usuarios/' + uId).update({
+                        online: true,
+                        telasAtivas: (dadosUser.telasAtivas || 0) + 1,
+                        sessionToken: token
+                    }).catch(e => console.warn("Erro ao atualizar status online"));
+
                     carregarApp(dadosUser.isAdmin);
                     verificarStatusSessao();
-                } else alert("Login inválido!");
-            }).catch(e => alert("Erro de conexão!"));
+                } else {
+                    alert("Usuário ou senha incorretos!");
+                }
+            }).catch(e => {
+                console.error(e);
+                alert("Erro de conexão com o banco de dados!");
+            });
         }
 
         function verificarStatusSessao() {
             if(!idSessao) return;
             db.ref('usuarios/' + idSessao).on('value', snap => {
                 const user = snap.val();
-                if (!user || (user.sessionToken && user.sessionToken !== sessionStorage.getItem('meuToken'))) {
-                    alert("Sessão encerrada."); location.reload();
+                const meuToken = sessionStorage.getItem('meuToken');
+                if (!user || (user.sessionToken && user.sessionToken !== meuToken)) {
+                    alert("Sessão encerrada.");
+                    location.reload();
                 }
             });
         }
@@ -228,18 +250,47 @@
             escutarBanco();
         }
 
-        function sair() { location.reload(); }
+        function sair() {
+            if(idSessao) {
+                db.ref('usuarios/' + idSessao).once('value', snap => {
+                    const u = snap.val();
+                    let novasTelas = (u && u.telasAtivas > 0) ? u.telasAtivas - 1 : 0;
+                    db.ref('usuarios/' + idSessao).update({ 
+                        online: false, 
+                        telasAtivas: novasTelas,
+                        sessionToken: null 
+                    }).then(() => location.reload()).catch(() => location.reload());
+                });
+            } else location.reload();
+        }
 
         function salvarUsuario() {
             const nome = document.getElementById('newU').value;
             const senha = document.getElementById('newP').value;
             const val = parseInt(document.getElementById('timeVal').value);
             const unit = document.getElementById('timeUnit').value;
+            const isAdmin = document.getElementById('isAdmCheck').checked;
+            const limit = parseInt(document.getElementById('newLimit').value) || 1;
+            
             if(!nome || !senha || isNaN(val)) return alert("Preencha tudo!");
+
             let ms = val * 1000;
-            if(unit === "min") ms *= 60; else if(unit === "hor") ms *= 3600; else if(unit === "dia") ms *= 86400; else if(unit === "mes") ms *= 86400 * 30;
-            db.ref('usuarios').push({ nome, senha, expiraEm: Date.now() + ms, isAdmin: document.getElementById('isAdmCheck').checked });
-            alert("Criado!");
+            if(unit === "min") ms *= 60;
+            if(unit === "hor") ms *= 3600;
+            if(unit === "dia") ms *= 86400;
+            if(unit === "mes") ms *= 86400 * 30;
+
+            db.ref('usuarios').push({ 
+                nome, senha, 
+                expiraEm: Date.now() + ms, 
+                online: false, 
+                isAdmin, 
+                limiteTelas: limit, 
+                telasAtivas: 0, 
+                sessionToken: null 
+            });
+            alert("Acesso Criado!");
+            document.getElementById('newU').value = ""; document.getElementById('newP').value = "";
         }
 
         function formatarTempo(ms) {
@@ -254,14 +305,17 @@
             timerPainel = setInterval(() => {
                 db.ref('usuarios').once('value', (snap) => {
                     const lista = document.getElementById('listaU');
-                    lista.innerHTML = ""; const data = snap.val();
+                    lista.innerHTML = "";
+                    const data = snap.val();
                     if(data) {
                         Object.keys(data).forEach(id => {
                             const tempo = formatarTempo(data[id].expiraEm - Date.now());
-                            lista.innerHTML += `<div class="user-item">
-                                <div><strong>${data[id].nome}</strong><br><small>${tempo}</small></div>
-                                <button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none; cursor:pointer;">Remover</button>
-                            </div>`;
+                            const status = data[id].online ? 'online' : 'offline';
+                            lista.innerHTML += `
+                                <div class="user-item">
+                                    <div><span class="status-dot ${status}"></span><strong>${data[id].nome}</strong><br><small>${tempo}</small></div>
+                                    <button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none; cursor:pointer;">Remover</button>
+                                </div>`;
                         });
                     }
                 });
@@ -273,24 +327,29 @@
         function abrirPlayer(url, titulo) {
             let finalUrl = url;
             if(url.includes('streamtape.com')) finalUrl = url.replace('/v/', '/e/').split('?')[0];
+            if(url.includes('drive.google.com')) finalUrl = url.replace('/view', '/preview');
+
             document.getElementById('playingTitle').innerText = titulo;
-            document.getElementById('playerContent').innerHTML = `<iframe src="${finalUrl}" allow="autoplay; fullscreen" allowfullscreen></iframe>`;
+            document.getElementById('playerContent').innerHTML = `<iframe src="${finalUrl}" allow="autoplay; fullscreen" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
             document.getElementById('videoOverlay').style.display = 'flex';
         }
 
-        function fecharPlayer() { document.getElementById('playerContent').innerHTML = ""; document.getElementById('videoOverlay').style.display = 'none'; }
+        function fecharPlayer() { 
+            document.getElementById('playerContent').innerHTML = ""; 
+            document.getElementById('videoOverlay').style.display = 'none'; 
+        }
 
         function salvarNoFirebase() {
             const movie = { 
                 title: document.getElementById('fTitle').value, 
                 url: document.getElementById('fUrl').value, 
                 rating: document.getElementById('fRating').value, 
-                desc: document.getElementById('fDesc').value,
-                poster: document.getElementById('fPoster').value || "", 
+                desc: document.getElementById('fDesc').value, 
+                poster: document.getElementById('fPoster').value || "",
                 id: Date.now() 
             };
             db.ref('filmes/' + movie.id).set(movie);
-            document.getElementById('modal').style.display = 'none';
+            fecharModalAdd();
         }
 
         function escutarBanco() {
@@ -307,23 +366,5 @@
                                     ${!m.poster ? '🎬' : ''}
                                 </div>
                                 <div class="card-info">
-                                    <div class="card-title"><strong>${m.title}</strong></div>
-                                    <div class="card-meta">⭐ ${m.rating}/10</div>
-                                    <button class="play-btn" onclick="abrirPlayer('${m.url}', '${m.title}')">ASSISTIR</button>
-                                </div>
-                            </div>`;
-                    });
-                }
-            });
-        }
-
-        function filtrarFilmes() {
-            const termo = document.getElementById('searchBar').value.toLowerCase();
-            document.querySelectorAll('.card').forEach(card => {
-                const title = card.querySelector('.card-title').innerText.toLowerCase();
-                card.style.display = title.includes(termo) ? 'block' : 'none';
-            });
-        }
-    </script>
-</body>
-</html>
+                                    <div class="card-title">${m.title}</div>
+          
