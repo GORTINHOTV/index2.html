@@ -26,13 +26,18 @@
         .card-info { padding: 15px; }
         .play-btn { width: 100%; padding: 10px; background: white; color: black; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         
-        /* Botões de Administração */
-        .admin-btns { position: absolute; top: 5px; right: 5px; display: flex; gap: 5px; z-index: 10; }
-        .del-btn { background: rgba(255,0,0,0.8); border: none; color: white; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; }
-        .edit-btn { background: rgba(255,165,0,0.8); border: none; color: white; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; }
+        /* Botões de Ações do Card */
+        .admin-actions { position: absolute; top: 5px; right: 5px; z-index: 10; display: flex; gap: 5px; }
+        .del-btn { background: rgba(255,0,0,0.8); border: none; color: white; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        .edit-btn { background: rgba(255,165,0,0.8); border: none; color: white; padding: 5px 8px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
         
         .user-list { margin-top: 15px; background: #222; border-radius: 5px; max-height: 300px; overflow-y: auto; text-align: left; padding: 10px; }
         .user-item { padding: 10px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .online { background: #00ff00; box-shadow: 0 0 5px #00ff00; }
+        .offline { background: #555; }
+        .time-counter { font-family: monospace; font-size: 0.75rem; color: #e50914; font-weight: bold; }
+        .badge-adm { background: gold; color: black; font-size: 0.6rem; padding: 1px 4px; border-radius: 3px; font-weight: bold; margin-left: 5px; }
 
         #videoOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 5000; flex-direction: column; }
         .player-header { padding: 15px; background: #141414; display: flex; justify-content: space-between; align-items: center; }
@@ -57,7 +62,7 @@
                     <div style="font-size: 1.5rem; font-weight: bold; color:#e50914;">GORDINHO TV</div>
                     <div>
                         <button class="admin-only" onclick="abrirModalUsers()" style="background:#333; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; margin-right:5px;">👥 USUÁRIOS</button>
-                        <button class="admin-only" onclick="abrirModalAdd()" style="background:#e50914; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">+ ADD FILME</button>
+                        <button class="admin-only" onclick="abrirModalCadastro()" style="background:#e50914; color:#fff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer;">+ ADD FILME</button>
                         <button onclick="sair()" style="background:none; color:gray; border:none; padding:8px; cursor:pointer; font-size:0.8rem;">Sair</button>
                     </div>
                 </div>
@@ -65,27 +70,6 @@
             </div>
         </header>
         <div class="container"><div id="grid" class="grid"></div></div>
-    </div>
-
-    <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
-        <div class="login-box" style="text-align: left;">
-            <h3 id="modalTitle" style="color:#e50914;">Novo Filme</h3>
-            
-            <div id="tmdbBox" style="display: flex; gap: 5px;">
-                <input type="text" id="tmdbSearch" placeholder="Busque pelo nome aqui...">
-                <button onclick="buscarNoTMDB()" style="background: #e50914; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer;">🔍</button>
-            </div>
-            <div id="tmdbResults" style="display:none; background:#222; margin-top:2px; border-radius:5px; max-height:150px; overflow-y:auto; border:1px solid #444; font-size:0.8rem;"></div>
-
-            <input type="hidden" id="editId"> <input type="text" id="fUrl" placeholder="Link do Filme">
-            <input type="text" id="fTitle" placeholder="Título">
-            <input type="text" id="fPoster" placeholder="URL da Capa (Opcional)">
-            <input type="number" id="fRating" placeholder="Nota (1-10)">
-            <textarea id="fDesc" placeholder="Sinopse"></textarea>
-            
-            <button class="btn-red" id="btnSalvar" onclick="salvarNoFirebase()">SALVAR NA NUVEM</button>
-            <button onclick="fecharModalAdd()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancelar</button>
-        </div>
     </div>
 
     <div id="modalUsers" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
@@ -102,12 +86,36 @@
                     <option value="mes">Meses</option>
                 </select>
             </div>
+            <input type="number" id="newLimit" placeholder="Limite de Telas" value="1">
             <div id="admToggleOption" style="display:none; margin: 10px 0; align-items: center; gap: 10px; font-size: 0.9rem;">
-                <input type="checkbox" id="isAdmCheck"> <span>Adm?</span>
+                <input type="checkbox" id="isAdmCheck" style="width: 20px; height: 20px;"> 
+                <span>Dar acesso de Administrador?</span>
             </div>
             <button class="btn-red" onclick="salvarUsuario()">CRIAR ACESSO</button>
             <div class="user-list" id="listaU"></div>
             <button onclick="fecharModalUsers()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Fechar</button>
+        </div>
+    </div>
+
+    <div id="modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:2000; align-items:center; justify-content:center;">
+        <div class="login-box" style="text-align: left;">
+            <h3 id="modalTitle" style="color:#e50914;">Novo Filme</h3>
+            
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="tmdbSearch" placeholder="Busque pelo nome aqui...">
+                <button onclick="buscarNoTMDB()" style="background: #e50914; color: white; border: none; padding: 0 15px; border-radius: 5px; cursor: pointer;">🔍</button>
+            </div>
+            <div id="tmdbResults" style="display:none; background:#222; margin-top:2px; border-radius:5px; max-height:150px; overflow-y:auto; border:1px solid #444; font-size:0.8rem;"></div>
+
+            <input type="hidden" id="fId"> <input type="text" id="fUrl" placeholder="Link do Filme">
+            <input type="text" id="fTitle" placeholder="Título">
+            <input type="text" id="fPosterManual" placeholder="URL da Capa (Opcional)">
+            <input type="hidden" id="fPoster">
+            <input type="number" id="fRating" placeholder="Nota (1-10)">
+            <textarea id="fDesc" placeholder="Sinopse"></textarea>
+            
+            <button class="btn-red" onclick="salvarNoFirebase()">SALVAR NA NUVEM</button>
+            <button onclick="fecharModal()" style="width:100%; background:none; color:gray; border:none; margin-top:10px; cursor:pointer;">Cancelar</button>
         </div>
     </div>
 
@@ -138,7 +146,37 @@
         const TMDB_KEY = "8e6a4fe3b8b0c240511a0c5cc382ca81";
 
         let userLogado = "";
+        let idSessao = "";
         let timerPainel = null;
+
+        async function buscarNoTMDB() {
+            const query = document.getElementById('tmdbSearch').value;
+            if (!query) return alert("Digite o nome!");
+            const url = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=pt-BR`;
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                const lista = document.getElementById('tmdbResults');
+                lista.innerHTML = "";
+                if (data.results && data.results.length > 0) {
+                    lista.style.display = "block";
+                    data.results.forEach(f => {
+                        const item = document.createElement('div');
+                        item.style = "padding:10px; border-bottom:1px solid #333; cursor:pointer;";
+                        item.innerHTML = `<strong>${f.title}</strong> (${f.release_date ? f.release_date.split('-')[0] : 'S/A'})`;
+                        item.onclick = () => {
+                            document.getElementById('fTitle').value = f.title;
+                            document.getElementById('fRating').value = f.vote_average.toFixed(1);
+                            document.getElementById('fDesc').value = f.overview;
+                            document.getElementById('fPoster').value = `https://image.tmdb.org/t/p/w500${f.poster_path}`;
+                            lista.style.display = "none";
+                            document.getElementById('tmdbSearch').value = f.title;
+                        };
+                        lista.appendChild(item);
+                    });
+                } else { alert("Nenhum filme encontrado."); }
+            } catch (e) { alert("Erro na busca."); }
+        }
 
         function entrar() {
             const u = document.getElementById('user').value.trim();
@@ -150,18 +188,23 @@
             }
             db.ref('usuarios').once('value').then((snap) => {
                 const users = snap.val();
-                let uId = null, dadosUser = null;
+                let uId = null;
+                let dadosUser = null;
                 if (users) {
                     Object.keys(users).forEach(key => {
-                        if (users[key].nome === u && users[key].senha === p) { uId = key; dadosUser = users[key]; }
+                        if (users[key].nome === u && users[key].senha === p) {
+                            uId = key;
+                            dadosUser = users[key];
+                        }
                     });
                 }
                 if (uId && dadosUser) {
-                    if (Date.now() > dadosUser.expiraEm) return alert("Acesso expirado!");
+                    if (Date.now() > dadosUser.expiraEm) { alert("Acesso expirado!"); return; }
                     userLogado = u;
+                    idSessao = uId;
                     carregarApp(dadosUser.isAdmin);
-                } else alert("Incorreto!");
-            });
+                } else { alert("Usuário ou senha incorretos!"); }
+            }).catch(e => alert("Erro de conexão!"));
         }
 
         function carregarApp(isAdmin) {
@@ -174,83 +217,56 @@
 
         function sair() { location.reload(); }
 
-        // --- LÓGICA DE FILMES (ADD / EDIT / BUSCA) ---
-        function abrirModalAdd() {
+        function abrirModalCadastro() {
             document.getElementById('modalTitle').innerText = "Novo Filme";
-            document.getElementById('editId').value = "";
-            document.getElementById('tmdbBox').style.display = "flex";
-            limparModal();
+            document.getElementById('fId').value = "";
+            limparCamposModal();
             document.getElementById('modal').style.display = 'flex';
         }
 
-        function editarFilme(id) {
-            db.ref('filmes/' + id).once('value').then(snap => {
-                const m = snap.val();
-                document.getElementById('modalTitle').innerText = "Editar Filme";
-                document.getElementById('editId').value = id;
-                document.getElementById('fTitle').value = m.title;
-                document.getElementById('fUrl').value = m.url;
-                document.getElementById('fRating').value = m.rating;
-                document.getElementById('fDesc').value = m.desc;
-                document.getElementById('fPoster').value = m.poster || "";
-                document.getElementById('tmdbBox').style.display = "none"; // Esconde busca ao editar
-                document.getElementById('modal').style.display = 'flex';
-            });
-        }
-
-        function fecharModalAdd() {
+        function fecharModal() {
             document.getElementById('modal').style.display = 'none';
             document.getElementById('tmdbResults').style.display = 'none';
         }
 
-        function limparModal() {
+        function limparCamposModal() {
             document.getElementById('fTitle').value = "";
             document.getElementById('fUrl').value = "";
             document.getElementById('fRating').value = "";
             document.getElementById('fDesc').value = "";
             document.getElementById('fPoster').value = "";
+            document.getElementById('fPosterManual').value = "";
             document.getElementById('tmdbSearch').value = "";
         }
 
-        async function buscarNoTMDB() {
-            const query = document.getElementById('tmdbSearch').value;
-            if (!query) return;
-            const url = `https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(query)}&language=pt-BR`;
-            const res = await fetch(url);
-            const data = await res.json();
-            const lista = document.getElementById('tmdbResults');
-            lista.innerHTML = "";
-            if (data.results?.length > 0) {
-                lista.style.display = "block";
-                data.results.forEach(f => {
-                    const d = document.createElement('div');
-                    d.style = "padding:10px; border-bottom:1px solid #333; cursor:pointer;";
-                    d.innerHTML = f.title;
-                    d.onclick = () => {
-                        document.getElementById('fTitle').value = f.title;
-                        document.getElementById('fRating').value = f.vote_average.toFixed(1);
-                        document.getElementById('fDesc').value = f.overview;
-                        document.getElementById('fPoster').value = `https://image.tmdb.org/t/p/w500${f.poster_path}`;
-                        lista.style.display = "none";
-                    };
-                    lista.appendChild(d);
-                });
-            }
+        function prepararEdicao(id) {
+            db.ref('filmes/' + id).once('value').then(snap => {
+                const m = snap.val();
+                document.getElementById('modalTitle').innerText = "Editar Filme";
+                document.getElementById('fId').value = m.id;
+                document.getElementById('fTitle').value = m.title;
+                document.getElementById('fUrl').value = m.url;
+                document.getElementById('fRating').value = m.rating;
+                document.getElementById('fDesc').value = m.desc;
+                document.getElementById('fPoster').value = m.poster || "";
+                document.getElementById('fPosterManual').value = m.poster || "";
+                document.getElementById('modal').style.display = 'flex';
+            });
         }
 
         function salvarNoFirebase() {
-            const id = document.getElementById('editId').value || Date.now();
-            const movie = {
-                title: document.getElementById('fTitle').value,
-                url: document.getElementById('fUrl').value,
-                rating: document.getElementById('fRating').value,
-                desc: document.getElementById('fDesc').value,
-                poster: document.getElementById('fPoster').value,
-                id: id
+            const id = document.getElementById('fId').value || Date.now();
+            const posterManual = document.getElementById('fPosterManual').value;
+            const movie = { 
+                title: document.getElementById('fTitle').value, 
+                url: document.getElementById('fUrl').value, 
+                rating: document.getElementById('fRating').value, 
+                desc: document.getElementById('fDesc').value, 
+                poster: posterManual || document.getElementById('fPoster').value || "",
+                id: id 
             };
-            if(!movie.title || !movie.url) return alert("Título e Link obrigatórios!");
             db.ref('filmes/' + id).set(movie);
-            fecharModalAdd();
+            fecharModal();
         }
 
         function escutarBanco() {
@@ -263,17 +279,17 @@
                         grid.innerHTML += `
                             <div class="card">
                                 ${(userLogado === "Miguel") ? `
-                                <div class="admin-btns">
-                                    <button class="edit-btn" onclick="editarFilme('${m.id}')">✏️</button>
+                                <div class="admin-actions">
+                                    <button class="edit-btn" onclick="prepararEdicao('${m.id}')">EDITAR</button>
                                     <button class="del-btn" onclick="db.ref('filmes/${m.id}').remove()">Excluir</button>
                                 </div>` : ''}
                                 <div style="height:150px; background: url('${m.poster || ''}') center/cover no-repeat; background-color:#222; display:flex; align-items:center; justify-content:center;">
                                     ${!m.poster ? '🎬' : ''}
                                 </div>
                                 <div class="card-info">
-                                    <div class="card-title" style="font-weight:bold;">${m.title}</div>
-                                    <div style="color:gold; font-size:0.8rem;">⭐ ${m.rating}/10</div>
-                                    <p style="font-size:0.75rem; color:#aaa; margin-top:5px;">${m.desc ? m.desc.substring(0,100)+'...' : ''}</p>
+                                    <div class="card-title">${m.title}</div>
+                                    <div class="card-meta">⭐ ${m.rating}/10</div>
+                                    <p style="font-size:0.8rem; color:#aaa;">${m.desc}</p>
                                     <button class="play-btn" onclick="abrirPlayer('${m.url}', '${m.title}')">ASSISTIR AGORA</button>
                                 </div>
                             </div>`;
@@ -282,44 +298,49 @@
             });
         }
 
-        // --- OUTRAS FUNÇÕES ---
-        function abrirPlayer(url, t) {
-            let fUrl = url;
-            if(url.includes('streamtape.com')) fUrl = url.replace('/v/', '/e/');
-            document.getElementById('playingTitle').innerText = t;
-            document.getElementById('playerContent').innerHTML = `<iframe src="${fUrl}" allowfullscreen></iframe>`;
-            document.getElementById('videoOverlay').style.display = 'flex';
+        function salvarUsuario() {
+            const nome = document.getElementById('newU').value;
+            const senha = document.getElementById('newP').value;
+            const val = parseInt(document.getElementById('timeVal').value);
+            const unit = document.getElementById('timeUnit').value;
+            if(!nome || !senha || isNaN(val)) return alert("Preencha tudo!");
+            let ms = val * 1000;
+            if(unit === "min") ms *= 60;
+            if(unit === "hor") ms *= 3600;
+            if(unit === "dia") ms *= 86400;
+            if(unit === "mes") ms *= 86400 * 30;
+            db.ref('usuarios').push({ nome, senha, expiraEm: Date.now() + ms, isAdmin: document.getElementById('isAdmCheck').checked });
+            alert("Acesso Criado!");
         }
-        function fecharPlayer() { document.getElementById('playerContent').innerHTML = ""; document.getElementById('videoOverlay').style.display = 'none'; }
-        
-        function filtrarFilmes() {
-            const t = document.getElementById('searchBar').value.toLowerCase();
-            document.querySelectorAll('.card').forEach(c => {
-                const title = c.querySelector('.card-title').innerText.toLowerCase();
-                c.style.display = title.includes(t) ? 'block' : 'none';
-            });
+
+        function formatarTempo(ms) {
+            if(ms <= 0) return "EXPIRADO";
+            let s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
+            return `${d}D ${h%24}H ${m%60}M`;
         }
 
         function abrirModalUsers() {
             document.getElementById('modalUsers').style.display = 'flex';
+            if(timerPainel) clearInterval(timerPainel);
             timerPainel = setInterval(() => {
-                db.ref('usuarios').once('value', snap => {
-                    const lista = document.getElementById('listaU'); lista.innerHTML = "";
+                db.ref('usuarios').once('value', (snap) => {
+                    const lista = document.getElementById('listaU');
+                    lista.innerHTML = "";
                     const data = snap.val();
-                    if(data) Object.keys(data).forEach(id => {
-                        lista.innerHTML += `<div class="user-item"><div><strong>${data[id].nome}</strong></div><button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none;">X</button></div>`;
-                    });
+                    if(data) {
+                        Object.keys(data).forEach(id => {
+                            const tempo = formatarTempo(data[id].expiraEm - Date.now());
+                            lista.innerHTML += `<div class="user-item"><div><strong>${data[id].nome}</strong><br><small>${tempo}</small></div><button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none; cursor:pointer;">Remover</button></div>`;
+                        });
+                    }
                 });
             }, 2000);
         }
+
         function fecharModalUsers() { document.getElementById('modalUsers').style.display = 'none'; clearInterval(timerPainel); }
-        function salvarUsuario() {
-            const n = document.getElementById('newU').value, s = document.getElementById('newP').value, v = parseInt(document.getElementById('timeVal').value), u = document.getElementById('timeUnit').value;
-            let ms = v * 1000;
-            if(u === "min") ms *= 60; if(u === "hor") ms *= 3600; if(u === "dia") ms *= 86400; if(u === "mes") ms *= 86400 * 30;
-            db.ref('usuarios').push({ nome: n, senha: s, expiraEm: Date.now() + ms, isAdmin: document.getElementById('isAdmCheck').checked });
-            alert("Criado!");
-        }
-    </script>
-</body>
-</html>
+
+        function abrirPlayer(url, titulo) {
+            let finalUrl = url;
+            if(url.includes('streamtape.com')) finalUrl = url.replace('/v/', '/e/').split('?')[0];
+            document.getElementById('playingTitle').innerText = titulo;
+            document.getElementById('playerContent').innerHTML = `<iframe src="${finalUrl}" allow="autoplay; fullscreen" allowfullscreen style="width:100%; height:100%;
