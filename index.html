@@ -67,8 +67,8 @@
         </header>
 
         <div class="container" style="display: flex; gap: 15px; justify-content: center; margin-bottom: 20px;">
-            <div onclick="mudarCategoria('filme')" id="catFilme" style="flex: 1; max-width: 200px; height: 80px; background: #e50914; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; border: 2px solid white;">🎥 Filmes</div>
-            <div onclick="mudarCategoria('serie')" id="catSerie" style="flex: 1; max-width: 200px; height: 80px; background: #222; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; border: 2px solid transparent;">📺 Séries</div>
+            <div onclick="mudarCategoria('filme')" id="catFilme" style="flex: 1; max-width: 200px; height: 80px; background: #e50914; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; border: 2px solid white;">🎥 FILMES</div>
+            <div onclick="mudarCategoria('serie')" id="catSerie" style="flex: 1; max-width: 200px; height: 80px; background: #222; border-radius: 10px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; border: 2px solid transparent;">📺 SÉRIES</div>
         </div>
 
         <div class="container"><div id="grid" class="grid"></div></div>
@@ -112,7 +112,7 @@
             <input type="text" id="fUrl" placeholder="Link do Filme">
             <input type="text" id="fTitle" placeholder="Título">
             
-            <div id="camposSerie" style="display: none; gap: 10px;">
+            <div id="areaSerie" style="display: none; gap: 10px;">
                 <input type="number" id="fEp" placeholder="Ep: 10">
                 <input type="number" id="fTemp" placeholder="Temporada: 3">
             </div>
@@ -155,28 +155,28 @@
         let userLogado = "";
         let idSessao = "";
         let timerPainel = null;
-        let categoriaAtual = "filme";
+        let categoriaAtual = "filme"; // Começa em filmes
 
         function mudarCategoria(cat) {
             categoriaAtual = cat;
-            const bFilme = document.getElementById('catFilme');
-            const bSerie = document.getElementById('catSerie');
+            const bF = document.getElementById('catFilme');
+            const bS = document.getElementById('catSerie');
             const btnAdd = document.getElementById('btnAddMain');
-            const modalTitle = document.getElementById('modalTitle');
-            const camposSerie = document.getElementById('camposSerie');
+            const tit = document.getElementById('modalTitle');
+            const areaS = document.getElementById('areaSerie');
 
             if (cat === 'serie') {
-                bSerie.style.background = "#e50914"; bSerie.style.border = "2px solid white";
-                bFilme.style.background = "#222"; bFilme.style.border = "2px solid transparent";
+                bS.style.background = "#e50914"; bS.style.border = "2px solid white";
+                bF.style.background = "#222"; bF.style.border = "2px solid transparent";
                 btnAdd.innerText = "+ ADD SÉRIE";
-                modalTitle.innerText = "Nova Série";
-                camposSerie.style.display = "flex";
+                tit.innerText = "Nova Série";
+                areaS.style.display = "flex";
             } else {
-                bFilme.style.background = "#e50914"; bFilme.style.border = "2px solid white";
-                bSerie.style.background = "#222"; bSerie.style.border = "2px solid transparent";
+                bF.style.background = "#e50914"; bF.style.border = "2px solid white";
+                bS.style.background = "#222"; bS.style.border = "2px solid transparent";
                 btnAdd.innerText = "+ ADD FILME";
-                modalTitle.innerText = "Novo Filme";
-                camposSerie.style.display = "none";
+                tit.innerText = "Novo Filme";
+                areaS.style.display = "none";
             }
             escutarBanco();
         }
@@ -206,8 +206,8 @@
                         };
                         lista.appendChild(item);
                     });
-                } else { alert("Nenhum filme encontrado."); }
-            } catch (e) { alert("Erro na busca."); }
+                }
+            } catch (e) { alert("Erro!"); }
         }
 
         function entrar() {
@@ -223,9 +223,9 @@
                     if (users[key].nome === u && users[key].senha === p) { uId = key; dadosUser = users[key]; }
                 });
                 if (uId && dadosUser) {
-                    if (Date.now() > dadosUser.expiraEm) return alert("Acesso expirado!");
+                    if (Date.now() > dadosUser.expiraEm) return alert("Expirado!");
                     userLogado = u; idSessao = uId; carregarApp(dadosUser.isAdmin);
-                } else alert("Usuário ou senha incorretos!");
+                } else alert("Incorreto!");
             });
         }
 
@@ -234,58 +234,10 @@
             document.getElementById('mainApp').style.display = 'block';
             if(isAdmin) document.getElementById('mainApp').classList.add('is-admin');
             if(userLogado === "Miguel") document.getElementById('admToggleOption').style.display = 'flex';
-            escutarBanco();
+            escutarBanco(); // Carrega os filmes da categoria padrão ao entrar
         }
 
         function sair() { location.reload(); }
-
-        function salvarUsuario() {
-            const nome = document.getElementById('newU').value;
-            const senha = document.getElementById('newP').value;
-            const val = parseInt(document.getElementById('timeVal').value);
-            const unit = document.getElementById('timeUnit').value;
-            if(!nome || !senha || isNaN(val)) return alert("Preencha tudo!");
-            let ms = val * 1000;
-            if(unit === "min") ms *= 60; if(unit === "hor") ms *= 3600; if(unit === "dia") ms *= 86400; if(unit === "mes") ms *= 86400 * 30;
-            db.ref('usuarios').push({ nome, senha, expiraEm: Date.now() + ms, isAdmin: document.getElementById('isAdmCheck').checked });
-            alert("Acesso Criado!");
-        }
-
-        function formatarTempo(ms) {
-            if(ms <= 0) return "EXPIRADO";
-            let s = Math.floor(ms / 1000), m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
-            return `${d}D ${h%24}H ${m%60}M`;
-        }
-
-        function abrirModalUsers() {
-            document.getElementById('modalUsers').style.display = 'flex';
-            if(timerPainel) clearInterval(timerPainel);
-            timerPainel = setInterval(() => {
-                db.ref('usuarios').once('value', (snap) => {
-                    const lista = document.getElementById('listaU');
-                    lista.innerHTML = "";
-                    const data = snap.val();
-                    if(data) {
-                        Object.keys(data).forEach(id => {
-                            const tempo = formatarTempo(data[id].expiraEm - Date.now());
-                            lista.innerHTML += `<div class="user-item"><div><strong>${data[id].nome}</strong><br><small>${tempo}</small></div><button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none; cursor:pointer;">Remover</button></div>`;
-                        });
-                    }
-                });
-            }, 2000);
-        }
-
-        function fecharModalUsers() { document.getElementById('modalUsers').style.display = 'none'; clearInterval(timerPainel); }
-
-        function abrirPlayer(url, titulo) {
-            let finalUrl = url;
-            if(url.includes('streamtape.com')) finalUrl = url.replace('/v/', '/e/').split('?')[0];
-            document.getElementById('playingTitle').innerText = titulo;
-            document.getElementById('playerContent').innerHTML = `<iframe src="${finalUrl}" allow="autoplay; fullscreen" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
-            document.getElementById('videoOverlay').style.display = 'flex';
-        }
-
-        function fecharPlayer() { document.getElementById('playerContent').innerHTML = ""; document.getElementById('videoOverlay').style.display = 'none'; }
 
         function salvarNoFirebase() {
             const movie = { 
@@ -294,7 +246,7 @@
                 rating: document.getElementById('fRating').value, 
                 desc: document.getElementById('fDesc').value, 
                 poster: document.getElementById('fPoster').value || "",
-                tipo: categoriaAtual,
+                tipo: categoriaAtual, // Salva o tipo
                 id: Date.now() 
             };
             if(categoriaAtual === 'serie') {
@@ -313,7 +265,7 @@
                 if(data) {
                     Object.values(data).reverse().forEach(m => {
                         const mTipo = m.tipo || "filme";
-                        if(mTipo !== categoriaAtual) return;
+                        if(mTipo !== categoriaAtual) return; // Filtra
 
                         grid.innerHTML += `
                             <div class="card">
@@ -326,4 +278,54 @@
                                     <div class="card-meta">
                                         ${m.tipo === 'serie' ? `Ep: ${m.ep} | Temp: ${m.temp}` : `⭐ ${m.rating}/10`}
                                     </div>
-                                    <p style="font-size:0.8rem; color:#aaa;">${m.desc}</
+                                    <p style="font-size:0.8rem; color:#aaa;">${m.desc}</p>
+                                    <button class="play-btn" onclick="abrirPlayer('${m.url}', '${m.title}')">ASSISTIR AGORA</button>
+                                </div>
+                            </div>`;
+                    });
+                }
+            });
+        }
+
+        function abrirPlayer(url, titulo) {
+            let finalUrl = url;
+            if(url.includes('streamtape.com')) finalUrl = url.replace('/v/', '/e/').split('?')[0];
+            document.getElementById('playingTitle').innerText = titulo;
+            document.getElementById('playerContent').innerHTML = `<iframe src="${finalUrl}" allow="autoplay; fullscreen" allowfullscreen style="width:100%; height:100%; border:none;"></iframe>`;
+            document.getElementById('videoOverlay').style.display = 'flex';
+        }
+
+        function fecharPlayer() { document.getElementById('playerContent').innerHTML = ""; document.getElementById('videoOverlay').style.display = 'none'; }
+        function fecharModalUsers() { document.getElementById('modalUsers').style.display = 'none'; clearInterval(timerPainel); }
+        
+        function abrirModalUsers() {
+            document.getElementById('modalUsers').style.display = 'flex';
+            if(timerPainel) clearInterval(timerPainel);
+            timerPainel = setInterval(() => {
+                db.ref('usuarios').once('value', (snap) => {
+                    const lista = document.getElementById('listaU');
+                    lista.innerHTML = "";
+                    const data = snap.val();
+                    if(data) {
+                        Object.keys(data).forEach(id => {
+                            const tempo = formatarTempo(data[id].expiraEm - Date.now());
+                            lista.innerHTML += `<div class="user-item"><div><strong>${data[id].nome}</strong><br><small>${tempo}</small></div><button onclick="db.ref('usuarios/${id}').remove()" style="color:red; background:none; border:none; cursor:pointer;">Remover</button></div>`;
+                        });
+                    }
+                });
+            }, 2000);
+        }
+
+        function salvarUsuario() {
+            const nome = document.getElementById('newU').value;
+            const senha = document.getElementById('newP').value;
+            const val = parseInt(document.getElementById('timeVal').value);
+            const unit = document.getElementById('timeUnit').value;
+            if(!nome || !senha || isNaN(val)) return alert("Preencha tudo!");
+            let ms = val * 1000;
+            if(unit === "min") ms *= 60; if(unit === "hor") ms *= 3600; if(unit === "dia") ms *= 86400; if(unit === "mes") ms *= 86400 * 30;
+            db.ref('usuarios').push({ nome, senha, expiraEm: Date.now() + ms, isAdmin: document.getElementById('isAdmCheck').checked });
+            alert("Sucesso!");
+        }
+
+        function formatarTempo(ms)
