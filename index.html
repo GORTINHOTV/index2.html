@@ -2,48 +2,77 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Gordinho Search - Automatizado</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gordinho Search - Oficial</title>
     <style>
-        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; padding: 50px; }
-        .search-box { background: #111; padding: 30px; border-radius: 15px; border: 2px solid #e50914; display: inline-block; width: 100%; max-width: 500px; }
-        input { width: 80%; padding: 15px; border-radius: 5px; border: none; margin-bottom: 20px; font-size: 1rem; }
-        button { padding: 15px 30px; background: #e50914; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        #status { margin-top: 20px; color: #aaa; font-style: italic; }
-        #linkFinal { margin-top: 20px; padding: 20px; background: #222; border-radius: 10px; display: none; word-break: break-all; border: 1px solid #28a745; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+        
+        .search-container { background: #111; border: 1px solid #e50914; border-radius: 15px; padding: 30px; width: 100%; max-width: 500px; text-align: center; box-shadow: 0 0 20px rgba(229, 9, 20, 0.2); }
+        
+        /* ÍCONE DE LEÃO */
+        .lion-icon { width: 80px; margin-bottom: 15px; filter: drop-shadow(0 0 5px rgba(255, 69, 0, 0.5)); }
+        
+        h1 { color: #e50914; font-size: 1.5rem; margin-bottom: 5px; text-transform: uppercase; }
+        p { color: #888; font-size: 0.9rem; margin-bottom: 20px; }
+
+        input { width: 100%; padding: 15px; background: #222; border: 1px solid #333; color: white; border-radius: 8px; margin-bottom: 15px; outline: none; transition: 0.3s; }
+        input:focus { border-color: #e50914; }
+
+        button { width: 100%; padding: 15px; background: #e50914; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        button:hover { background: #ff0a16; transform: scale(1.02); }
+
+        #status { margin-top: 15px; font-size: 0.85rem; color: #ffca28; display: none; }
+
+        /* LISTA DE EPISÓDIOS (ESTILO DO PRINT) */
+        .results-list { margin-top: 25px; width: 100%; max-width: 500px; display: none; background: #111; border-radius: 10px; overflow: hidden; border: 1px solid #333; }
+        .ep-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; text-align: left; }
+        .ep-item:hover { background: #1a1a1a; }
+        .play-icon { width: 40px; height: 40px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; color: black; flex-shrink: 0; }
+        .ep-info b { display: block; font-size: 1rem; }
+        .ep-info span { font-size: 0.75rem; color: #888; }
+
+        /* BOX DO LINK FINAL */
+        #finalBox { display: none; margin-top: 20px; padding: 15px; background: #000; border: 1px dashed #28a745; border-radius: 8px; width: 100%; }
+        .link-display { font-family: monospace; font-size: 0.8rem; color: #2ecc71; word-break: break-all; margin: 10px 0; display: block; }
     </style>
 </head>
 <body>
 
-<div class="search-box">
-    <h1 style="color:#e50914">GORDINHO SEARCH</h1>
-    <p>Digite o nome do filme e eu busco o link pra você:</p>
-    <br>
-    <input type="text" id="movieName" placeholder="Ex: Velozes e Furiosos 10">
-    <br>
-    <button onclick="buscarAutomatico()">BUSCAR AGORA 🚀</button>
-    <div id="status"></div>
-    
-    <div id="linkFinal">
-        <strong style="color:#28a745">Link Encontrado:</strong><br><br>
-        <span id="urlGerada"></span><br><br>
-        <button onclick="copiar()" style="background:#444; padding:5px 10px;">COPIAR LINK</button>
+    <div class="search-container">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Brave_container_icon.png" class="lion-icon" alt="Lion">
+        <h1>Gordinho Search</h1>
+        <p>Busca automática de Streamtape</p>
+
+        <input type="text" id="movieName" placeholder="Ex: Cobra Kai ou Avatar">
+        <button onclick="iniciarBusca()">Buscar Agora 🚀</button>
+        <div id="status"></div>
     </div>
-</div>
+
+    <div id="resultsList" class="results-list"></div>
+
+    <div id="finalBox">
+        <span style="color: #28a745; font-weight: bold; font-size: 0.8rem;">LINK CAPTURADO:</span>
+        <span id="urlGerada" class="link-display"></span>
+        <button onclick="copiarLink()" style="background: #333; padding: 8px; font-size: 0.8rem;">Copiar Link</button>
+    </div>
 
 <script>
-    async function buscarAutomatico() {
+    async function iniciarBusca() {
         const nome = document.getElementById('movieName').value;
         const status = document.getElementById('status');
-        const resBox = document.getElementById('linkFinal');
-        const urlGerada = document.getElementById('urlGerada');
+        const list = document.getElementById('resultsList');
+        const finalBox = document.getElementById('finalBox');
 
-        if(!nome) return alert("Digite um nome!");
+        if(!nome) return alert("Digite o nome do filme ou série!");
 
-        status.innerText = "🔍 Buscando no Pobreflix...";
-        resBox.style.display = "none";
+        status.style.display = "block";
+        status.innerText = "🔍 Vasculhando o Pobreflix...";
+        list.style.display = "none";
+        finalBox.style.display = "none";
 
         try {
-            // 1. FAZ A BUSCA PELO NOME
+            // Usando um serviço de proxy cors-anywhere alternativo
             const searchUrl = `https://www.pobreflixtv.sarl/?s=${encodeURIComponent(nome)}`;
             const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(searchUrl)}`;
             
@@ -51,46 +80,80 @@
             const data = await response.json();
             const html = data.contents;
 
-            // 2. TENTA ACHAR O LINK DO PRIMEIRO FILME NA BUSCA
-            // No Pobreflix, os links de filmes ficam dentro de tags 'a' com títulos
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
-            const primeiroLink = doc.querySelector('.result-item a') || doc.querySelector('.items article a');
+            
+            // Pega todos os resultados encontrados
+            const artigos = doc.querySelectorAll('.result-item article, .items article');
+            
+            if (artigos.length > 0) {
+                list.innerHTML = "";
+                status.innerText = "✅ Encontrei esses resultados:";
+                list.style.display = "block";
 
-            if (primeiroLink) {
-                const urlFilme = primeiroLink.href;
-                status.innerText = "✅ Filme encontrado! Extraindo Streamtape...";
+                artigos.forEach((art, index) => {
+                    const linkObj = art.querySelector('a');
+                    const titulo = art.querySelector('.title, h3')?.innerText || "Resultado " + (index + 1);
+                    const linkImg = art.querySelector('img')?.src || "";
+                    const urlFilme = linkObj.href;
 
-                // 3. ENTRA NA PÁGINA DO FILME PARA PEGAR O STREAMTAPE
-                const proxyFilme = `https://api.allorigins.win/get?url=${encodeURIComponent(urlFilme)}`;
-                const responseFilme = await fetch(proxyFilme);
-                const dataFilme = await responseFilme.json();
-                const htmlFilme = dataFilme.contents;
-
-                const regex = /https?:\/\/streamtape\.com\/(v|e)\/[a-zA-Z0-9]+/g;
-                const matches = htmlFilme.match(regex);
-
-                if (matches) {
-                    let final = matches[0].replace('/v/', '/e/');
-                    urlGerada.innerText = final;
-                    resBox.style.display = "block";
-                    status.innerText = "✨ Tudo pronto!";
-                } else {
-                    status.innerText = "❌ Filme achado, mas sem link Streamtape.";
-                }
+                    const item = document.createElement('div');
+                    item.className = "ep-item";
+                    item.onclick = () => extrairStreamtape(urlFilme, titulo);
+                    item.innerHTML = `
+                        <div class="play-icon">▶</div>
+                        <div class="ep-info">
+                            <b>${titulo}</b>
+                            <span>Toque para pescar o link</span>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
             } else {
-                status.innerText = "❌ Nenhum filme com esse nome foi encontrado.";
+                status.innerText = "❌ Nada encontrado. Tente outro nome.";
             }
         } catch (e) {
-            status.innerText = "❌ Erro na conexão automática.";
+            status.innerText = "❌ Erro de conexão. Tente novamente mais tarde.";
             console.error(e);
         }
     }
 
-    function copiar() {
+    async function extrairStreamtape(url, titulo) {
+        const status = document.getElementById('status');
+        const finalBox = document.getElementById('finalBox');
+        const urlGerada = document.getElementById('urlGerada');
+
+        status.innerText = `🎣 Pescando link de: ${titulo}...`;
+        finalBox.style.display = "none";
+
+        try {
+            const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+            const response = await fetch(proxy);
+            const data = await response.json();
+            
+            // Procura o Streamtape no código da página do filme escolhido
+            const regex = /https?:\/\/streamtape\.com\/(v|e)\/[a-zA-Z0-9]+/g;
+            const matches = data.contents.match(regex);
+
+            if (matches) {
+                let final = matches[0].replace('/v/', '/e/');
+                urlGerada.innerText = final;
+                finalBox.style.display = "block";
+                status.innerText = "✨ Peixe fisgado!";
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            } else {
+                alert("Não achei link do Streamtape nesta página específica.");
+                status.innerText = "❌ Sem Streamtape aqui.";
+            }
+        } catch (e) {
+            alert("Erro ao ler a página do filme.");
+        }
+    }
+
+    function copiarLink() {
         const txt = document.getElementById('urlGerada').innerText;
         navigator.clipboard.writeText(txt);
-        alert("Copiado!");
+        alert("Link copiado para o seu App!");
     }
 </script>
 
