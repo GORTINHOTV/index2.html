@@ -3,147 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gordinho Search - Oficial</title>
+    <meta name="referrer" content="no-referrer">
+    <title>Gordinho Stream Elite 🎬</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-
-        /* CABEÇALHO AZUL (IGUAL AO PRINT) */
-        .header-blue { width: 100%; background: #0077b5; padding: 15px; text-align: center; font-weight: bold; font-size: 1.2rem; position: relative; display: none; }
-        .close-x { position: absolute; right: 20px; top: 15px; cursor: pointer; }
-
-        .search-box { background: #0f0f0f; border: 1px solid #e50914; border-radius: 15px; padding: 25px; width: 95%; max-width: 450px; margin-top: 40px; text-align: center; }
-        .lion-icon { width: 60px; margin-bottom: 10px; }
+        body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
         
-        h1 { color: #e50914; font-size: 1.4rem; margin-bottom: 15px; }
-        input { width: 100%; padding: 12px; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 8px; margin-bottom: 15px; outline: none; }
-        button.btn-search { width: 100%; padding: 15px; background: #e50914; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        header { background: #000; padding: 15px; text-align: center; border-bottom: 2px solid #e50914; position: sticky; top: 0; z-index: 100; }
+        .logo { color: #e50914; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        #searchInp { width: 90%; max-width: 500px; padding: 12px; border-radius: 20px; border: 1px solid #333; background: #111; color: white; outline: none; }
 
-        #status { margin-top: 15px; color: #ffca28; font-size: 0.9rem; }
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; padding: 20px; }
+        .movie-card { background: #111; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid #222; transition: 0.3s; }
+        .movie-card:hover { border-color: #e50914; transform: scale(1.05); }
+        .movie-card img { width: 100%; height: 200px; object-fit: cover; }
+        .movie-info { padding: 10px; font-size: 0.75rem; text-align: center; font-weight: bold; }
 
-        /* LISTA DE EPISÓDIOS (ESTILO DO SEU PRINT) */
-        .episode-list { width: 100%; background: #141418; display: none; margin-top: 10px; }
-        .episode-item { display: flex; align-items: center; padding: 15px; border-bottom: 1px solid #222; cursor: pointer; transition: 0.2s; }
-        .episode-item:hover { background: #1f1f23; }
-        .play-btn { width: 35px; height: 35px; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 15px; color: black; flex-shrink: 0; font-size: 0.8rem; }
-        .ep-text b { display: block; font-size: 1rem; color: #eee; }
-        .ep-text span { font-size: 0.75rem; color: #777; }
-
-        /* RESULTADO FINAL */
-        #copyBox { display: none; position: fixed; bottom: 20px; background: #111; padding: 15px; border-radius: 10px; border: 1px solid #28a745; width: 90%; max-width: 400px; text-align: center; }
+        #playerOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 1000; flex-direction: column; }
+        .player-header { background: #e50914; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: white; }
+        
+        .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; }
+        select { background: #000; color: white; border: 1px solid #e50914; padding: 8px; border-radius: 5px; outline: none; font-weight: bold; }
+        
+        .iframe-container { flex-grow: 1; background: #000; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; }
+        
+        .aviso { font-size: 0.6rem; color: #777; padding: 5px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="headerBlue" class="header-blue">
-        <span id="titleTarget">NOME DO FILME</span>
-        <span class="close-x" onclick="resetar()">✕</span>
+    <div id="playerOverlay">
+        <div class="player-header">
+            <span id="displayTitle">ASSISTINDO</span>
+            <span style="cursor:pointer; font-size: 1.2rem; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 5px;" onclick="fecharPlayer()">✕ FECHAR</span>
+        </div>
+        
+        <div class="controls" id="serieControls" style="display: none;">
+            <select id="selectTemp" onchange="mudarTemporada()"></select>
+            <select id="selectEp" onchange="mudarEpisodio()"></select>
+        </div>
+
+        <div id="playerArea" class="iframe-container"></div>
+        <div class="aviso">O player prioriza áudio em Português. Ajuste se necessário na engrenagem.</div>
     </div>
 
-    <div id="mainSearch" class="search-box">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Brave_container_icon.png" class="lion-icon">
-        <h1>GORDINHO SEARCH</h1>
-        <input type="text" id="movieInput" placeholder="Ex: Cobra Kai">
-        <button class="btn-search" onclick="buscar()">BUSCAR AGORA 🚀</button>
-        <div id="status"></div>
-    </div>
+    <header>
+        <div class="logo">GORDINHO STREAM</div>
+        <input type="text" id="searchInp" placeholder="🔍 Buscar filme ou série..." onkeyup="buscar()">
+    </header>
 
-    <div id="episodeList" class="episode-list"></div>
-
-    <div id="copyBox">
-        <p style="color:#28a745; font-size: 0.8rem; margin-bottom: 5px;">LINK CAPTURADO:</p>
-        <p id="linkFinal" style="font-family: monospace; font-size: 0.7rem; color: #aaa; margin-bottom: 10px; word-break: break-all;"></p>
-        <button onclick="copiar()" style="background:#333; color:white; border:none; padding:8px 20px; border-radius:5px; cursor:pointer;">COPIAR</button>
-    </div>
+    <div class="movie-grid" id="grid"></div>
 
 <script>
-    const proxy = "https://api.allorigins.win/get?url=";
+    const API_KEY = '8e6a4fe3b8b0c240511a0c5cc382ca81';
+    let currentId = '';
+    let currentType = '';
 
-    async function buscar() {
-        const query = document.getElementById('movieInput').value;
-        const status = document.getElementById('status');
-        if(!query) return;
-
-        status.innerText = "🔍 Buscando no servidor...";
-        
-        try {
-            const urlBusca = `https://www.pobreflixtv.sarl/?s=${encodeURIComponent(query)}`;
-            const response = await fetch(proxy + encodeURIComponent(urlBusca));
-            const data = await response.json();
-            
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data.contents, 'text/html');
-            const resultados = doc.querySelectorAll('.result-item article, .items article');
-
-            if(resultados.length > 0) {
-                mostrarResultados(resultados);
-            } else {
-                status.innerText = "❌ Nenhum resultado encontrado.";
-            }
-        } catch (err) {
-            status.innerText = "⚠️ Erro de rede. Tente novamente.";
-        }
+    async function carregarPopulares() {
+        const res = await fetch(`https://api.themoviedb.org/3/trending/all/week?api_key=${API_KEY}&language=pt-BR`);
+        const data = await res.json();
+        exibirFilmes(data.results);
     }
 
-    function mostrarResultados(artigos) {
-        const list = document.getElementById('episodeList');
-        const searchBox = document.getElementById('mainSearch');
-        searchBox.style.display = "none";
-        list.style.display = "block";
-        list.innerHTML = "";
+    async function buscar() {
+        const q = document.getElementById('searchInp').value;
+        if(q.length < 3) return q.length == 0 && carregarPopulares();
+        const res = await fetch(`https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=pt-BR&query=${q}`);
+        const data = await res.json();
+        exibirFilmes(data.results);
+    }
 
-        artigos.forEach(art => {
-            const titulo = art.querySelector('h3, .title')?.innerText;
-            const link = art.querySelector('a')?.href;
-            
-            const div = document.createElement('div');
-            div.className = 'episode-item';
-            div.onclick = () => extrair(link, titulo);
-            div.innerHTML = `
-                <div class="play-btn">▶</div>
-                <div class="ep-text">
-                    <b>${titulo}</b>
-                    <span>Toque para capturar o código Streamtape</span>
-                </div>
-            `;
-            list.appendChild(div);
+    function exibirFilmes(itens) {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = "";
+        itens.forEach(item => {
+            if(!item.poster_path) return;
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            const tipo = item.media_type || (item.first_air_date ? 'tv' : 'movie');
+            card.onclick = () => abrirPlayer(item.id, item.title || item.name, tipo);
+            card.innerHTML = `<img src="https://image.tmdb.org/t/p/w300${item.poster_path}"><div class="movie-info">${item.title || item.name}</div>`;
+            grid.appendChild(card);
         });
     }
 
-    async function extrair(url, titulo) {
-        document.getElementById('status').innerText = "🎣 Pescando link...";
-        document.getElementById('headerBlue').style.display = "block";
-        document.getElementById('titleTarget').innerText = titulo.toUpperCase();
+    async function abrirPlayer(id, titulo, tipo) {
+        currentId = id;
+        currentType = tipo;
+        document.getElementById('playerOverlay').style.display = "flex";
+        document.getElementById('displayTitle').innerText = titulo.toUpperCase();
         
-        try {
-            const response = await fetch(proxy + encodeURIComponent(url));
-            const data = await response.json();
-            
-            // Procura o Streamtape no código
-            const regex = /https?:\/\/streamtape\.com\/(v|e)\/[a-zA-Z0-9]+/g;
-            const found = data.contents.match(regex);
-
-            if(found) {
-                let link = found[0].replace('/v/', '/e/');
-                document.getElementById('linkFinal').innerText = link;
-                document.getElementById('copyBox').style.display = "block";
-            } else {
-                alert("Streamtape não disponível para este item.");
-            }
-        } catch (e) {
-            alert("Erro ao extrair link.");
+        if(tipo === 'tv') {
+            document.getElementById('serieControls').style.display = "flex";
+            await carregarTemporadasIniciais(id);
+        } else {
+            document.getElementById('serieControls').style.display = "none";
+            carregarVideo(id);
         }
     }
 
-    function copiar() {
-        const txt = document.getElementById('linkFinal').innerText;
-        navigator.clipboard.writeText(txt);
-        alert("Copiado!");
+    async function carregarTemporadasIniciais(id) {
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${API_KEY}&language=pt-BR`);
+        const data = await res.json();
+        const st = document.getElementById('selectTemp');
+        st.innerHTML = "";
+        data.seasons.forEach(s => {
+            if(s.season_number === 0) return;
+            let o = document.createElement('option');
+            o.value = s.season_number; o.innerText = `Temp ${s.season_number}`;
+            st.appendChild(o);
+        });
+        await mudarTemporada();
     }
 
-    function resetar() {
-        location.reload();
+    async function mudarTemporada() {
+        const t = document.getElementById('selectTemp').value;
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${currentId}/season/${t}?api_key=${API_KEY}&language=pt-BR`);
+        const data = await res.json();
+        const se = document.getElementById('selectEp');
+        se.innerHTML = "";
+        data.episodes.forEach(e => {
+            let o = document.createElement('option');
+            o.value = e.episode_number; o.innerText = `Ep ${e.episode_number}`;
+            se.appendChild(o);
+        });
+        mudarEpisodio();
     }
+
+    function mudarEpisodio() {
+        const t = document.getElementById('selectTemp').value;
+        const e = document.getElementById('selectEp').value;
+        carregarVideo(currentId, t, e);
+    }
+
+    function carregarVideo(id, s, e) {
+        // SERVIDOR EMBEDDER: Focado em Dublados e mais amigável com GitHub
+        let url = `https://embedder.net/e/movie?tmdb=${id}`;
+        if(currentType === 'tv') {
+            url = `https://embedder.net/e/tv?tmdb=${id}&sea=${s}&epi=${e}`;
+        }
+        
+        const area = document.getElementById('playerArea');
+        area.innerHTML = ""; // Limpa antes de carregar
+        
+        const iframe = document.createElement('iframe');
+        iframe.src = url;
+        iframe.allowFullscreen = true;
+        iframe.setAttribute('scrolling', 'no');
+        iframe.setAttribute('frameborder', '0');
+        
+        area.appendChild(iframe);
+    }
+
+    function fecharPlayer() {
+        document.getElementById('playerOverlay').style.display = "none";
+        document.getElementById('playerArea').innerHTML = "";
+    }
+
+    carregarPopulares();
 </script>
 </body>
 </html>
