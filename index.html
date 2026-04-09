@@ -16,12 +16,15 @@
         .movie-card:hover { border-color: #e50914; transform: scale(1.05); }
         .movie-card img { width: 100%; height: 200px; object-fit: cover; }
         .movie-info { padding: 10px; font-size: 0.75rem; text-align: center; font-weight: bold; }
+        
         #playerOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 1000; flex-direction: column; }
         .player-header { background: #e50914; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: white; }
         .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; flex-wrap: wrap; }
+        
         select, .btn-sv { background: #e50914; color: white; border: none; padding: 8px 15px; border-radius: 5px; outline: none; font-weight: bold; cursor: pointer; }
         .btn-sv { background: #333; }
-        .iframe-container { flex-grow: 1; background: #000; position: relative; }
+
+        .iframe-container { flex-grow: 1; background: #000; display: flex; align-items: center; justify-content: center; }
         iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -30,21 +33,21 @@
     <div id="playerOverlay">
         <div class="player-header">
             <span id="displayTitle">ASSISTINDO</span>
-            <span style="cursor:pointer;" onclick="fecharPlayer()">✕ FECHAR</span>
+            <span style="cursor:pointer; padding: 5px 10px;" onclick="fecharPlayer()">✕ FECHAR</span>
         </div>
         <div class="controls">
             <div id="serieControls" style="display: none; gap: 10px;">
                 <select id="selectTemp" onchange="mudarTemporada()"></select>
                 <select id="selectEp" onchange="mudarEpisodio()"></select>
             </div>
-            <button class="btn-sv" onclick="mudarEpisodio()">RECARREGAR DUBLADO</button>
+            <button class="btn-sv" onclick="mudarEpisodio()">FORÇAR PLAY (DUBLADO)</button>
         </div>
         <div id="playerArea" class="iframe-container"></div>
     </div>
 
     <header>
         <div class="logo">GORDINHO STREAM</div>
-        <input type="text" id="searchInp" placeholder="🔍 Buscar filme ou série..." onkeyup="buscar()">
+        <input type="text" id="searchInp" placeholder="🔍 O que vamos assistir hoje?" onkeyup="buscar()">
     </header>
     <div class="movie-grid" id="grid"></div>
 
@@ -125,8 +128,10 @@
         const s = document.getElementById('selectTemp').value || 1;
         const e = document.getElementById('selectEp').value || 1;
         
-        // NOVO SERVIDOR (SuperVideo) - Focado em Dublados e sem tela preta
-        let url = `https://supervideo.tv/e/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${currentId}${currentType==='tv'?`&sea=${s}&epi=${e}`:''}`;
+        // SERVIDOR WAREZCDN: O mais forte para evitar tela preta em sites BR
+        let url = (currentType === 'movie') 
+            ? `https://embed.warezcdn.com/movie/${currentId}` 
+            : `https://embed.warezcdn.com/serie/${currentId}/${s}/${e}`;
         
         const area = document.getElementById('playerArea');
         area.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media" referrerpolicy="no-referrer"></iframe>`;
