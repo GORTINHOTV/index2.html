@@ -19,10 +19,11 @@
         #playerOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 1000; flex-direction: column; }
         .player-header { background: #e50914; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: white; }
         .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; flex-wrap: wrap; }
-        select, .btn-sv { background: #000; color: white; border: 1px solid #e50914; padding: 8px; border-radius: 5px; outline: none; font-weight: bold; cursor: pointer; }
+        select, .btn-sv { background: #e50914; color: white; border: none; padding: 8px 15px; border-radius: 5px; outline: none; font-weight: bold; cursor: pointer; }
+        .btn-sv { background: #333; }
         .iframe-container { flex-grow: 1; background: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
-        .aviso { font-size: 0.6rem; color: #777; padding: 5px; text-align: center; }
+        .aviso { font-size: 0.6rem; color: #aaa; padding: 5px; text-align: center; background: #111; }
     </style>
 </head>
 <body>
@@ -38,16 +39,16 @@
                 <select id="selectTemp" onchange="mudarTemporada()"></select>
                 <select id="selectEp" onchange="mudarEpisodio()"></select>
             </div>
-            <button class="btn-sv" onclick="trocarServidor()">Trocar Servidor (Dublado)</button>
+            <button class="btn-sv" onclick="trocarServidor()">PRÓXIMO SERVIDOR ➔</button>
         </div>
 
         <div id="playerArea" class="iframe-container"></div>
-        <div class="aviso">Se a tela ficar preta, clique em "Trocar Servidor".</div>
+        <div class="aviso">Aguarde 5 segundos. Se ficar preto, clique em "Próximo Servidor".</div>
     </div>
 
     <header>
         <div class="logo">GORDINHO STREAM</div>
-        <input type="text" id="searchInp" placeholder="🔍 Buscar..." onkeyup="buscar()">
+        <input type="text" id="searchInp" placeholder="🔍 Buscar filme ou série..." onkeyup="buscar()">
     </header>
 
     <div class="movie-grid" id="grid"></div>
@@ -86,6 +87,7 @@
 
     async function abrirPlayer(id, titulo, tipo) {
         currentId = id; currentType = tipo;
+        currentSv = 0; // Reseta para o servidor 1
         document.getElementById('playerOverlay').style.display = "flex";
         document.getElementById('displayTitle').innerText = titulo.toUpperCase();
         if(tipo === 'tv') {
@@ -103,7 +105,7 @@
         const st = document.getElementById('selectTemp');
         st.innerHTML = "";
         data.seasons.forEach(s => {
-            if(s.season_number === 0) return;
+            if(s.season_number === 0 || !s.air_date) return;
             let o = document.createElement('option');
             o.value = s.season_number; o.innerText = `Temp ${s.season_number}`;
             st.appendChild(o);
@@ -130,20 +132,21 @@
     }
 
     function carregarVideo(id, s, e) {
-        // SERVIDORES ATUALIZADOS E SEM TRAVA DE SANDBOX
+        // SERVIDORES INVERTIDOS - WarezCDN em primeiro para evitar tela preta
         const servers = [
-            `https://supervideo.tv/e/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${id}${currentType === 'tv' ? `&sea=${s}&epi=${e}` : ''}`,
             `https://embed.warezcdn.com/${currentType === 'movie' ? 'movie' : 'serie'}/${id}${currentType === 'tv' ? `/${s}/${e}` : ''}`,
-            `https://vidsrc.me/embed/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${id}${currentType === 'tv' ? `&season=${s}&episode=${e}` : ''}`
+            `https://supervideo.tv/e/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${id}${currentType === 'tv' ? `&sea=${s}&epi=${e}` : ''}`,
+            `https://vidsrc.to/embed/${currentType === 'movie' ? 'movie' : 'tv'}/${id}${currentType === 'tv' ? `/${s}/${e}` : ''}`
         ];
         
         const area = document.getElementById('playerArea');
-        area.innerHTML = ""; // Limpa tela preta anterior
+        area.innerHTML = ""; 
         
         const ifr = document.createElement('iframe');
         ifr.src = servers[currentSv];
         ifr.allowFullscreen = true;
-        // Removendo o atributo 'sandbox' para permitir que o player carregue scripts externos
+        ifr.setAttribute('scrolling', 'no');
+        ifr.setAttribute('frameborder', '0');
         ifr.setAttribute('referrerpolicy', 'no-referrer');
         area.appendChild(ifr);
     }
