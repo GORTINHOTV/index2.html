@@ -38,11 +38,11 @@
                 <select id="selectTemp" onchange="mudarTemporada()"></select>
                 <select id="selectEp" onchange="mudarEpisodio()"></select>
             </div>
-            <button class="btn-sv" onclick="trocarServidor()">Trocar Servidor</button>
+            <button class="btn-sv" onclick="trocarServidor()">Trocar Servidor (Dublado)</button>
         </div>
 
         <div id="playerArea" class="iframe-container"></div>
-        <div class="aviso">Ajuste áudio/legenda na engrenagem do player. Tente outro servidor se houver erro.</div>
+        <div class="aviso">Se a tela ficar preta, clique em "Trocar Servidor".</div>
     </div>
 
     <header>
@@ -126,16 +126,26 @@
     }
 
     function mudarEpisodio() {
-        carregarVideo(currentId, document.getElementById('selectTemp').value, document.getElementById('selectEp').value);
+        carregarVideo(currentId, document.getElementById('selectTemp').value || 1, document.getElementById('selectEp').value || 1);
     }
 
-    function carregarVideo(id, s = 1, e = 1) {
+    function carregarVideo(id, s, e) {
+        // SERVIDORES ATUALIZADOS E SEM TRAVA DE SANDBOX
         const servers = [
             `https://supervideo.tv/e/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${id}${currentType === 'tv' ? `&sea=${s}&epi=${e}` : ''}`,
             `https://embed.warezcdn.com/${currentType === 'movie' ? 'movie' : 'serie'}/${id}${currentType === 'tv' ? `/${s}/${e}` : ''}`,
             `https://vidsrc.me/embed/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${id}${currentType === 'tv' ? `&season=${s}&episode=${e}` : ''}`
         ];
-        document.getElementById('playerArea').innerHTML = `<iframe src="${servers[currentSv]}" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
+        
+        const area = document.getElementById('playerArea');
+        area.innerHTML = ""; // Limpa tela preta anterior
+        
+        const ifr = document.createElement('iframe');
+        ifr.src = servers[currentSv];
+        ifr.allowFullscreen = true;
+        // Removendo o atributo 'sandbox' para permitir que o player carregue scripts externos
+        ifr.setAttribute('referrerpolicy', 'no-referrer');
+        area.appendChild(ifr);
     }
 
     function trocarServidor() {
