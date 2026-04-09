@@ -7,27 +7,21 @@
     <title>Gordinho Stream Elite 🎬</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow-x: hidden; }
-        
+        body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         header { background: #000; padding: 15px; text-align: center; border-bottom: 2px solid #e50914; position: sticky; top: 0; z-index: 100; }
         .logo { color: #e50914; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
         #searchInp { width: 90%; max-width: 500px; padding: 12px; border-radius: 20px; border: 1px solid #333; background: #111; color: white; outline: none; }
-
         .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; padding: 20px; }
         .movie-card { background: #111; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid #222; transition: 0.3s; }
         .movie-card:hover { border-color: #e50914; transform: scale(1.05); }
         .movie-card img { width: 100%; height: 200px; object-fit: cover; }
         .movie-info { padding: 10px; font-size: 0.75rem; text-align: center; font-weight: bold; }
-
         #playerOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 1000; flex-direction: column; }
         .player-header { background: #e50914; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: white; }
-        
-        .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; }
-        select { background: #000; color: white; border: 1px solid #e50914; padding: 8px; border-radius: 5px; outline: none; font-weight: bold; }
-        
+        .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; flex-wrap: wrap; }
+        select, .btn-sv { background: #000; color: white; border: 1px solid #e50914; padding: 8px; border-radius: 5px; outline: none; font-weight: bold; cursor: pointer; }
         .iframe-container { flex-grow: 1; background: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
-        
         .aviso { font-size: 0.6rem; color: #777; padding: 5px; text-align: center; }
     </style>
 </head>
@@ -36,29 +30,31 @@
     <div id="playerOverlay">
         <div class="player-header">
             <span id="displayTitle">ASSISTINDO</span>
-            <span style="cursor:pointer; font-size: 1.2rem; background: rgba(0,0,0,0.2); padding: 5px 15px; border-radius: 5px;" onclick="fecharPlayer()">✕ FECHAR</span>
+            <span style="cursor:pointer; font-size: 1.2rem;" onclick="fecharPlayer()">✕ FECHAR</span>
         </div>
         
-        <div class="controls" id="serieControls" style="display: none;">
-            <select id="selectTemp" onchange="mudarTemporada()"></select>
-            <select id="selectEp" onchange="mudarEpisodio()"></select>
+        <div class="controls">
+            <div id="serieControls" style="display: none; gap: 10px;">
+                <select id="selectTemp" onchange="mudarTemporada()"></select>
+                <select id="selectEp" onchange="mudarEpisodio()"></select>
+            </div>
+            <button class="btn-sv" onclick="trocarServidor()">Trocar Servidor</button>
         </div>
 
         <div id="playerArea" class="iframe-container"></div>
-        <div class="aviso">O player prioriza áudio em Português. Ajuste se necessário na engrenagem.</div>
+        <div class="aviso">Ajuste áudio/legenda na engrenagem do player. Tente outro servidor se houver erro.</div>
     </div>
 
     <header>
         <div class="logo">GORDINHO STREAM</div>
-        <input type="text" id="searchInp" placeholder="🔍 Buscar filme ou série..." onkeyup="buscar()">
+        <input type="text" id="searchInp" placeholder="🔍 Buscar..." onkeyup="buscar()">
     </header>
 
     <div class="movie-grid" id="grid"></div>
 
 <script>
     const API_KEY = '8e6a4fe3b8b0c240511a0c5cc382ca81';
-    let currentId = '';
-    let currentType = '';
+    let currentId = '', currentType = '', currentSv = 0;
 
     async function carregarPopulares() {
         const res = await fetch(`https://api.themoviedb.org/3/trending/all/week?api_key=${API_KEY}&language=pt-BR`);
@@ -89,21 +85,19 @@
     }
 
     async function abrirPlayer(id, titulo, tipo) {
-        currentId = id;
-        currentType = tipo;
+        currentId = id; currentType = tipo;
         document.getElementById('playerOverlay').style.display = "flex";
         document.getElementById('displayTitle').innerText = titulo.toUpperCase();
-        
         if(tipo === 'tv') {
             document.getElementById('serieControls').style.display = "flex";
-            await carregarTemporadasIniciais(id);
+            await carregarTemporadas(id);
         } else {
             document.getElementById('serieControls').style.display = "none";
             carregarVideo(id);
         }
     }
 
-    async function carregarTemporadasIniciais(id) {
+    async function carregarTemporadas(id) {
         const res = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${API_KEY}&language=pt-BR`);
         const data = await res.json();
         const st = document.getElementById('selectTemp');
@@ -132,28 +126,21 @@
     }
 
     function mudarEpisodio() {
-        const t = document.getElementById('selectTemp').value;
-        const e = document.getElementById('selectEp').value;
-        carregarVideo(currentId, t, e);
+        carregarVideo(currentId, document.getElementById('selectTemp').value, document.getElementById('selectEp').value);
     }
 
-    function carregarVideo(id, s, e) {
-        // SERVIDOR EMBEDDER: Focado em Dublados e mais amigável com GitHub
-        let url = `https://embedder.net/e/movie?tmdb=${id}`;
-        if(currentType === 'tv') {
-            url = `https://embedder.net/e/tv?tmdb=${id}&sea=${s}&epi=${e}`;
-        }
-        
-        const area = document.getElementById('playerArea');
-        area.innerHTML = ""; // Limpa antes de carregar
-        
-        const iframe = document.createElement('iframe');
-        iframe.src = url;
-        iframe.allowFullscreen = true;
-        iframe.setAttribute('scrolling', 'no');
-        iframe.setAttribute('frameborder', '0');
-        
-        area.appendChild(iframe);
+    function carregarVideo(id, s = 1, e = 1) {
+        const servers = [
+            `https://supervideo.tv/e/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${id}${currentType === 'tv' ? `&sea=${s}&epi=${e}` : ''}`,
+            `https://embed.warezcdn.com/${currentType === 'movie' ? 'movie' : 'serie'}/${id}${currentType === 'tv' ? `/${s}/${e}` : ''}`,
+            `https://vidsrc.me/embed/${currentType === 'movie' ? 'movie' : 'tv'}?tmdb=${id}${currentType === 'tv' ? `&season=${s}&episode=${e}` : ''}`
+        ];
+        document.getElementById('playerArea').innerHTML = `<iframe src="${servers[currentSv]}" allowfullscreen referrerpolicy="no-referrer"></iframe>`;
+    }
+
+    function trocarServidor() {
+        currentSv = (currentSv + 1) % 3;
+        mudarEpisodio();
     }
 
     function fecharPlayer() {
