@@ -24,7 +24,7 @@
         select, .btn-sv { background: #e50914; color: white; border: none; padding: 8px 15px; border-radius: 5px; outline: none; font-weight: bold; cursor: pointer; }
         .btn-sv { background: #333; }
 
-        .iframe-container { flex-grow: 1; background: #000; display: flex; align-items: center; justify-content: center; }
+        .iframe-container { flex-grow: 1; background: #000; display: flex; align-items: center; justify-content: center; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -40,7 +40,7 @@
                 <select id="selectTemp" onchange="mudarTemporada()"></select>
                 <select id="selectEp" onchange="mudarEpisodio()"></select>
             </div>
-            <button class="btn-sv" onclick="mudarEpisodio()">FORÇAR PLAY (DUBLADO)</button>
+            <button class="btn-sv" onclick="carregarVideo()">🔄 RECARREGAR PLAYER</button>
         </div>
         <div id="playerArea" class="iframe-container"></div>
     </div>
@@ -92,7 +92,7 @@
             await carregarTemporadas(id);
         } else {
             document.getElementById('serieControls').style.display = "none";
-            mudarEpisodio();
+            carregarVideo();
         }
     }
 
@@ -121,20 +121,32 @@
             o.value = e.episode_number; o.innerText = `Ep ${e.episode_number}`;
             se.appendChild(o);
         });
-        mudarEpisodio();
+        carregarVideo();
     }
 
     function mudarEpisodio() {
+        carregarVideo();
+    }
+
+    function carregarVideo() {
         const s = document.getElementById('selectTemp').value || 1;
         const e = document.getElementById('selectEp').value || 1;
         
-        // SERVIDOR WAREZCDN: O mais forte para evitar tela preta em sites BR
-        let url = (currentType === 'movie') 
-            ? `https://embed.warezcdn.com/movie/${currentId}` 
-            : `https://embed.warezcdn.com/serie/${currentId}/${s}/${e}`;
+        let url = "";
+        if (currentType === 'movie') {
+            // URL Direta para Filmes
+            url = `https://warezcdn.site/filme/${currentId}`;
+        } else {
+            // URL Direta para Séries (id-temporada-episodio)
+            url = `https://warezcdn.site/serie/${currentId}-${s}-${e}`;
+        }
         
         const area = document.getElementById('playerArea');
-        area.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media" referrerpolicy="no-referrer"></iframe>`;
+        // Adicionando um pequeno delay para garantir a limpeza do iframe
+        area.innerHTML = "";
+        setTimeout(() => {
+            area.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media" referrerpolicy="no-referrer"></iframe>`;
+        }, 50);
     }
 
     function fecharPlayer() {
