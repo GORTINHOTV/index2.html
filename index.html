@@ -21,8 +21,8 @@
         .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; flex-wrap: wrap; }
         select, .btn-sv { background: #e50914; color: white; border: none; padding: 8px 15px; border-radius: 5px; outline: none; font-weight: bold; cursor: pointer; }
         .btn-sv { background: #333; }
-        .iframe-container { flex-grow: 1; background: #000; }
-        iframe { width: 100%; height: 100%; border: none; }
+        .iframe-container { flex-grow: 1; background: #000; position: relative; }
+        iframe { width: 100%; height: 100%; border: none; position: absolute; top: 0; left: 0; }
     </style>
 </head>
 <body>
@@ -30,21 +30,21 @@
     <div id="playerOverlay">
         <div class="player-header">
             <span id="displayTitle">ASSISTINDO</span>
-            <span style="cursor:pointer;" onclick="fecharPlayer()">✕ FECHAR</span>
+            <span style="cursor:pointer; padding: 5px 10px;" onclick="fecharPlayer()">✕ FECHAR</span>
         </div>
         <div class="controls">
             <div id="serieControls" style="display: none; gap: 10px;">
                 <select id="selectTemp" onchange="mudarTemporada()"></select>
                 <select id="selectEp" onchange="mudarEpisodio()"></select>
             </div>
-            <button class="btn-sv" onclick="mudarEpisodio()">TELA PRETA? CLIQUE AQUI</button>
+            <button class="btn-sv" onclick="mudarEpisodio()">FORÇAR CARREGAMENTO</button>
         </div>
         <div id="playerArea" class="iframe-container"></div>
     </div>
 
     <header>
         <div class="logo">GORDINHO STREAM</div>
-        <input type="text" id="searchInp" placeholder="🔍 Buscar filme ou série..." onkeyup="buscar()">
+        <input type="text" id="searchInp" placeholder="🔍 O que vamos assistir hoje?" onkeyup="buscar()">
     </header>
     <div class="movie-grid" id="grid"></div>
 
@@ -124,11 +124,16 @@
     function mudarEpisodio() {
         const s = document.getElementById('selectTemp').value || 1;
         const e = document.getElementById('selectEp').value || 1;
-        // NOVO SERVIDOR DUBLADO (Vidsrc.icu) - Mais resistente a tela preta
-        let url = `https://vidsrc.icu/embed/${currentType}/${currentId}${currentType==='tv'?`/${s}/${e}`:''}`;
+        
+        // NOVO SERVIDOR (Vidsrc.xyz) - Mais estável para evitar tela preta no play
+        let url = `https://vidsrc.xyz/embed/${currentType}/${currentId}${currentType==='tv'?`/${s}/${e}`:''}`;
         
         const area = document.getElementById('playerArea');
-        area.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
+        // Limpa o player antes de carregar o novo (evita cache de tela preta)
+        area.innerHTML = ""; 
+        setTimeout(() => {
+            area.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
+        }, 100);
     }
 
     function fecharPlayer() {
