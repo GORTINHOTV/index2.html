@@ -3,27 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gordinho Stream Elite 🎬</title>
+    <title>Gordinho Stream Pro 🎬</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
+        body { background: #050505; color: white; font-family: 'Segoe UI', sans-serif; }
         
         header { background: #000; padding: 15px; text-align: center; border-bottom: 2px solid #e50914; position: sticky; top: 0; z-index: 100; }
         .logo { color: #e50914; font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
         #searchInp { width: 90%; max-width: 500px; padding: 12px; border-radius: 20px; border: 1px solid #333; background: #111; color: white; outline: none; }
 
-        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; padding: 20px; height: 85vh; overflow-y: auto; }
+        .movie-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 15px; padding: 20px; }
         .movie-card { background: #111; border-radius: 8px; overflow: hidden; cursor: pointer; border: 1px solid #222; }
         .movie-card img { width: 100%; height: 200px; object-fit: cover; }
-        .movie-info { padding: 10px; font-size: 0.75rem; text-align: center; font-weight: bold; }
+        .movie-info { padding: 8px; font-size: 0.75rem; text-align: center; font-weight: bold; }
 
+        /* PLAYER COM FUNDO VERMELHO */
         #playerOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: none; z-index: 1000; flex-direction: column; }
-        .player-header { background: #e50914; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .player-header { background: #e50914; padding: 12px; display: flex; justify-content: space-between; align-items: center; font-weight: bold; color: white; }
         
-        .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; }
-        select, .btn-sv { background: #000; color: white; border: 1px solid #e50914; padding: 8px; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        .controls { background: #111; padding: 10px; display: flex; gap: 10px; justify-content: center; border-bottom: 1px solid #333; flex-wrap: wrap; }
+        select { background: #000; color: white; border: 1px solid #e50914; padding: 8px; border-radius: 5px; outline: none; font-weight: bold; }
         
-        .iframe-container { flex-grow: 1; background: #000; }
+        /* BOTÃO TROCAR SERVIDOR SE DER TELA BRANCA */
+        .btn-server { background: #333; color: white; border: 1px solid #555; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 0.7rem; }
+        .btn-active { background: #e50914; border-color: white; }
+
+        .iframe-container { flex-grow: 1; background: #000; position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
@@ -31,8 +36,8 @@
 
     <div id="playerOverlay">
         <div class="player-header">
-            <span id="displayTitle">CARREGANDO...</span>
-            <span style="cursor:pointer; padding: 5px 15px; background: rgba(0,0,0,0.3); border-radius: 5px;" onclick="fecharPlayer()">✕ FECHAR</span>
+            <span id="displayTitle">ASSISTINDO</span>
+            <span style="cursor:pointer; font-size: 1.1rem; background: rgba(0,0,0,0.5); padding: 5px 15px; border-radius: 5px;" onclick="fecharPlayer()">✕ FECHAR</span>
         </div>
         
         <div class="controls">
@@ -40,15 +45,19 @@
                 <select id="selectTemp" onchange="mudarTemporada()"></select>
                 <select id="selectEp" onchange="mudarEpisodio()"></select>
             </div>
-            <button class="btn-sv" onclick="mudarEpisodio()">Recarregar Vídeo</button>
+            <div style="display: flex; gap: 5px; align-items: center;">
+                <span style="font-size: 0.7rem;">OPÇÕES:</span>
+                <button class="btn-server btn-active" id="sv1" onclick="trocarPlayer(1)">Principal</button>
+                <button class="btn-server" id="sv2" onclick="trocarPlayer(2)">Alternativo</button>
+            </div>
         </div>
 
-        <div id="playerArea" class="iframe-container"></div>
+        <div class="iframe-container" id="playerArea"></div>
     </div>
 
     <header>
         <div class="logo">GORDINHO STREAM</div>
-        <input type="text" id="searchInp" placeholder="🔍 Buscar filme ou série..." onkeyup="buscar()">
+        <input type="text" id="searchInp" placeholder="🔍 O que vamos assistir hoje?" onkeyup="buscar()">
     </header>
 
     <div class="movie-grid" id="grid"></div>
@@ -57,6 +66,9 @@
     const API_KEY = '8e6a4fe3b8b0c240511a0c5cc382ca81';
     let currentId = '';
     let currentType = '';
+    let currentS = 1;
+    let currentE = 1;
+    let playerAtivo = 1;
 
     async function carregarPopulares() {
         const res = await fetch(`https://api.themoviedb.org/3/trending/all/week?api_key=${API_KEY}&language=pt-BR`);
@@ -89,19 +101,20 @@
     async function abrirPlayer(id, titulo, tipo) {
         currentId = id;
         currentType = tipo;
+        playerAtivo = 1;
         document.getElementById('playerOverlay').style.display = "flex";
         document.getElementById('displayTitle').innerText = titulo.toUpperCase();
         
         if(tipo === 'tv') {
             document.getElementById('serieControls').style.display = "flex";
-            await carregarTemporadas(id);
+            await carregarTemporadasIniciais(id);
         } else {
             document.getElementById('serieControls').style.display = "none";
             carregarVideo(id);
         }
     }
 
-    async function carregarTemporadas(id) {
+    async function carregarTemporadasIniciais(id) {
         const res = await fetch(`https://api.themoviedb.org/3/tv/${id}?api_key=${API_KEY}&language=pt-BR`);
         const data = await res.json();
         const st = document.getElementById('selectTemp');
@@ -109,43 +122,51 @@
         data.seasons.forEach(s => {
             if(s.season_number === 0) return;
             let o = document.createElement('option');
-            o.value = s.season_number; o.innerText = `Temporada ${s.season_number}`;
+            o.value = s.season_number; o.innerText = `Temp ${s.season_number}`;
             st.appendChild(o);
         });
         await mudarTemporada();
     }
 
     async function mudarTemporada() {
-        const t = document.getElementById('selectTemp').value;
-        const res = await fetch(`https://api.themoviedb.org/3/tv/${currentId}/season/${t}?api_key=${API_KEY}&language=pt-BR`);
+        currentS = document.getElementById('selectTemp').value;
+        const res = await fetch(`https://api.themoviedb.org/3/tv/${currentId}/season/${currentS}?api_key=${API_KEY}&language=pt-BR`);
         const data = await res.json();
         const se = document.getElementById('selectEp');
         se.innerHTML = "";
         data.episodes.forEach(e => {
             let o = document.createElement('option');
-            o.value = e.episode_number; o.innerText = `Episódio ${e.episode_number}`;
+            o.value = e.episode_number; o.innerText = `Ep ${e.episode_number}`;
             se.appendChild(o);
         });
         mudarEpisodio();
     }
 
     function mudarEpisodio() {
-        const t = document.getElementById('selectTemp').value || 1;
-        const e = document.getElementById('selectEp').value || 1;
-        carregarVideo(currentId, t, e);
+        currentE = document.getElementById('selectEp').value;
+        carregarVideo(currentId, currentS, currentE);
+    }
+
+    function trocarPlayer(num) {
+        playerAtivo = num;
+        document.getElementById('sv1').className = num === 1 ? 'btn-server btn-active' : 'btn-server';
+        document.getElementById('sv2').className = num === 2 ? 'btn-server btn-active' : 'btn-server';
+        carregarVideo(currentId, currentS, currentE);
     }
 
     function carregarVideo(id, s, e) {
-        // Servidor Embedder focado em dublados
-        let url = `https://embedder.net/e/movie?tmdb=${id}`;
-        if(currentType === 'tv') {
-            url = `https://embedder.net/e/tv?tmdb=${id}&sea=${s}&epi=${e}`;
+        let url = "";
+        if (playerAtivo === 1) {
+            // Servidor 1: SuperEmbed (Mais estável para séries)
+            url = `https://multiembed.mov/?video_id=${id}&tmdb=1`;
+            if(currentType === 'tv') url += `&s=${s}&e=${e}`;
+        } else {
+            // Servidor 2: Vidsrc (Alternativo)
+            url = `https://vidsrc.me/embed/movie?tmdb=${id}`;
+            if(currentType === 'tv') url = `https://vidsrc.me/embed/tv?tmdb=${id}&sea=${s}&epi=${e}`;
         }
         
-        // Aqui está o pulo do gato: Sem 'sandbox' pra não dar tela preta
-        document.getElementById('playerArea').innerHTML = `
-            <iframe src="${url}" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-        `;
+        document.getElementById('playerArea').innerHTML = `<iframe src="${url}" allowfullscreen></iframe>`;
     }
 
     function fecharPlayer() {
