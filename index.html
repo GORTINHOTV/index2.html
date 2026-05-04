@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GODINHO.IA - GROQ</title>
+    <title>GORDINHO.IA - Groq</title>
     <style>
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -34,7 +34,7 @@
             flex-direction: column;
             gap: 10px;
         }
-        .message { padding: 10px 15px; border-radius: 15px; max-width: 80%; line-height: 1.4; }
+        .message { padding: 10px 15px; border-radius: 15px; max-width: 80%; line-height: 1.4; word-wrap: break-word; }
         .user { background: #f55036; color: white; align-self: flex-end; }
         .ia { background: #30363d; color: #e3e6e8; align-self: flex-start; }
         
@@ -70,7 +70,7 @@
 </head>
 <body>
 
-    <h2>Chat IA</h2>
+    <h2>GORDINHO.IA</h2>
     
     <div id="chat-container">
         <div id="chat">
@@ -93,11 +93,9 @@
 
             if (!texto) return;
 
-            // Desativar botão e limpar input
             btn.disabled = true;
             input.value = '';
 
-            // Mostrar mensagem do usuário
             chat.innerHTML += `<div class="message user">${texto}</div>`;
             chat.scrollTop = chat.scrollHeight;
 
@@ -109,19 +107,27 @@
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        model: "llama3-8b-8192",
+                        model: "llama-3.1-8b-instant",
                         messages: [{ role: "user", content: texto }],
                         temperature: 0.7
                     })
                 });
 
                 const data = await response.json();
-                const respostaIA = data.choices[0].message.content;
 
-                // Mostrar resposta da IA
+                if (!response.ok) {
+                    throw new Error(data.error ? data.error.message : "Erro desconhecido");
+                }
+
+                const respostaIA = data.choices[0].message.content;
                 chat.innerHTML += `<div class="message ia">${respostaIA}</div>`;
+                
             } catch (error) {
-                chat.innerHTML += `<div class="message ia" style="color: red;">Erro ao conectar com a IA. Verifique sua chave ou conexão.</div>`;
+                console.error(error);
+                chat.innerHTML += `<div class="message ia" style="color: #ff6b6b; border: 1px solid #ff6b6b;">
+                    <strong>Erro:</strong> ${error.message}<br>
+                    <small>Dica: Verifique se a chave API ainda é válida no painel da Groq.</small>
+                </div>`;
             }
 
             btn.disabled = false;
