@@ -11,12 +11,13 @@
         #chat { height: 450px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
         .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
         .user { background: #f55036; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start; border-bottom-left-radius: 4px; }
-        .input-area { display: flex;< padding: 15px; background: #22272e; gap: 8px; flex-wrap: wrap; border-top: 1px solid #30363d; }
-        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; outline: none; min-width:< 200px; }
-        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border:< none; background: #f55036; color: white; font-weight: bold; transition: 0.2s; }
+        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #444; }
+        .input-area { display: flex; padding: 15px; background: #22272e; gap: 8px; flex-wrap: wrap; border-top: 1px solid #30363d; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; outline: none; min-width: 200px; }
+        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036; color: white; font-weight: bold; transition: 0.2s; }
         button:hover { background: #d43f2a; }
-        .btn-secondary { background: #30363d; color: white; cursor: pointer; border-radius: 8px; border: none; padding: 10px 15px; font-weight: bold; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        .btn-secondary { background: #30363d; color: white; }
         .btn-active { background: #28a745 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         #preview-container { display: none; padding: 10px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
@@ -32,25 +33,31 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Eae! Mudei para os servidores da Hugging Face. Mais estável e continua vendo tudo!</div>
+            <div class="message ia">Salve! Token configurado. Estou rodando via Hugging Face. Se for o primeiro uso, posso demorar uns 30s para "acordar". Manda bala!</div>
         </div>
         
         <div class="input-area">
-            <input type="text" id="pergunta" placeholder="Mande uma mensagem..." autocomplete="off" onkeypress="if(event.key === 'Enter') perguntarIA()">
-            <button id="btnEnviar" onclick="perguntarIA()">Enviar</button>
-            <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">+ Foto</button>
-            <button id="btnTela" class="btn-secondary" onclick="toggleScreenShare()">📡 Monitorar Tela</button>
-            <input type="file" id="fileInput" hidden accept="image/*" onchange="previewImage(this)">
+            <input type="text" id="pergunta" placeholder="O que você quer saber?..." autocomplete="off">
+            <button id="btnEnviar">Enviar</button>
+            <button class="btn-secondary" id="btnUpload">+ Foto</button>
+            <button id="btnTela" class="btn-secondary">📡 Monitorar Tela</button>
+            <input type="file" id="fileInput" hidden accept="image/*">
         </div>
     </div>
 
     <script>
-        // COLOQUE SEU TOKEN DA HUGGING FACE AQUI (Começa com hf_...)
-        const HF_TOKEN = "SEU_TOKEN_AQUI"; 
+        // TOKEN CONFIGURADO
+        const HF_TOKEN = "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"; 
         
         let screenStream = null;
         let base64Image = null;
+
         const chatDiv = document.getElementById('chat');
+        const inputPergunta = document.getElementById('pergunta');
+        const btnEnviar = document.getElementById('btnEnviar');
+        const btnTela = document.getElementById('btnTela');
+        const btnUpload = document.getElementById('btnUpload');
+        const fileInput = document.getElementById('fileInput');
 
         function falar(texto) {
             window.speechSynthesis.cancel();
@@ -59,35 +66,38 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        async function toggleScreenShare() {
-            const btn = document.getElementById('btnTela');
+        // FUNÇÃO MONITORAR TELA
+        btnTela.onclick = async () => {
             if (screenStream) {
                 screenStream.getTracks().forEach(t => t.stop());
                 screenStream = null;
-                btn.classList.remove('btn-active');
-                btn.innerText = "📡 Monitorar Tela";
+                btnTela.classList.remove('btn-active');
+                btnTela.innerText = "📡 Monitorar Tela";
                 document.getElementById('preview-container').style.display = "none";
             } else {
                 try {
                     screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                    btn.classList.add('btn-active');
-                    btn.innerText = "📺 MONITORANDO";
+                    btnTela.classList.add('btn-active');
+                    btnTela.innerText = "📺 MONITORANDO";
                     document.getElementById('preview-container').style.display = "block";
-                } catch (e) { alert("Permita o acesso à tela."); }
+                } catch (e) { alert("Acesso à tela negado."); }
             }
-        }
+        };
 
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
+        // FUNÇÃO UPLOAD FOTO
+        btnUpload.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    base64Image = e.target.result;
-                    document.getElementById('preview-img').src = e.target.result;
+                reader.onload = (event) => {
+                    base64Image = event.target.result;
+                    document.getElementById('preview-img').src = event.target.result;
                     document.getElementById('preview-container').style.display = "block";
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             }
-        }
+        };
 
         async function capturarFrameTela() {
             const video = document.createElement('video');
@@ -97,67 +107,78 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-            const data = canvas.toDataURL('image/jpeg', 0.5);
+            const data = canvas.toDataURL('image/jpeg', 0.6);
             video.pause();
             return data;
         }
 
         async function perguntarIA() {
-            const input = document.getElementById('pergunta');
-            const btn = document.getElementById('btnEnviar');
-            const texto = input.value.trim();
-
+            const texto = inputPergunta.value.trim();
             if (!texto && !base64Image && !screenStream) return;
 
-            btn.disabled = true;
-            const promptUsuario = texto || "Descreva o que você vê```
-
----
-### Por que essa é a melhor opção "própria"?
-1. **Sem Intermediários:** Você fala direto com os servidores da Hugging Face onde o Llama está morando.
-2. **Não "cai":** Diferente da Groq que está testando nomes novos, essa API é para desenvolvedores e costuma ser mais fixa.
-3. **Privacidade:** Você controla seu token.
-
-**Dica:** O Llama 3.2 Vision é um modelo pesado. Se a Hugging Face demorar um pouco para responder na primeira vez, é porque ela está "acordando" o modelo para você (Loading model). Basta esperar uns segundos! nesta imagem.";
+            btnEnviar.disabled = true;
+            const promptUsuario = texto || "Analise o que você está vendo.";
             chatDiv.innerHTML += `<div class="message user">${promptUsuario}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
-            input.value = '';
+            inputPergunta.value = '';
 
-            let imagemParaEnviar = base64Image;
-            if (screenStream) imagemParaEnviar = await capturarFrameTela();
+            let imagemFinal = base64Image;
+            if (screenStream) imagemFinal = await capturarFrameTela();
 
             try {
-                // Rota para o modelo Llama 3.2 Vision na Hugging Face
-                const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Llama-3.2-11B-Vision-Instruct", {
+                // Formato COMPATÍVEL com Llama-3.2-11B-Vision-Instruct na Hugging Face
+                const payload = {
+                    model: "meta-llama/Llama-3.2-11B-Vision-Instruct",
+                    messages: [
+                        {
+                            role: "user",
+                            content: [
+                                { type: "text", text: promptUsuario },
+                                ...(imagemFinal ? [{ type: "image_url", image_url: { url: imagemFinal } }] : [])
+                            ]
+                        }
+                    ],
+                    max_tokens: 500
+                };
+
+                const response = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${HF_TOKEN}`,
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({
-                        inputs: imagemParaEnviar ? {
-                            image: imagemParaEnviar.split(',')[1],
-                            text: promptUsuario
-                        } : promptUsuario
-                    })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();
                 
-                // A Hugging Face retorna o texto de forma diferente
-                const respostaIA = data[0]?.generated_text || data.generated_text || "Não consegui processar agora.";
-                
-                chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
-                falar(respostaIA);
+                if (data.error) {
+                    if (JSON.stringify(data.error).includes("loading")) {
+                        chatDiv.innerHTML += `<div class="message ia">O modelo ainda está carregando no servidor. Tente novamente em 20 segundos!</div>`;
+                    } else {
+                        throw new Error(data.error.message || JSON.stringify(data.error));
+                    }
+                } else {
+                    const respostaIA = data.choices[0].message.content;
+                    chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
+                    falar(respostaIA);
+                }
 
             } catch (e) {
-                chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro: ${e.message}</div>`;
+                console.error(e);
+                chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro: Verifique se aceitou os termos do Llama 3.2 Vision na Hugging Face.</div>`;
             }
 
-            btn.disabled = false;
+            btnEnviar.disabled = false;
             chatDiv.scrollTop = chatDiv.scrollHeight;
             base64Image = null; 
         }
+
+        // ATRIBUIÇÃO DOS BOTÕES
+        btnEnviar.onclick = perguntarIA;
+        inputPergunta.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') perguntarIA();
+        });
     </script>
 </body>
 </html>
