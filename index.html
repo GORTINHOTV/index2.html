@@ -31,20 +31,21 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Conexão atualizada! Se der erro, aguarde 10s e tente enviar novamente. Estou ligando os motores...</div>
+            <div class="message ia">Salve! Token novo configurado. O modelo Phi-3.5 Vision está pronto. Mande uma foto ou monitore a tela!</div>
         </div>
         
         <div class="input-area">
-            <input type="text" id="pergunta" placeholder="Mande sua dúvida..." autocomplete="off">
+            <input type="text" id="pergunta" placeholder="O que você quer saber?..." autocomplete="off">
             <button id="btnEnviar">Enviar</button>
             <button class="btn-secondary" id="btnUpload">+ Foto</button>
-            <button id="btnTela" class="btn-secondary">📡 Monitorar Tela</button>
+            <button id="btnTela" class="btn-secondary" id="btnMonitor">📡 Monitorar Tela</button>
             <input type="file" id="fileInput" hidden accept="image/*">
         </div>
     </div>
 
     <script>
-        const HF_TOKEN = "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"; 
+        // TOKEN ATUALIZADO
+        const HF_TOKEN = "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"; 
         
         let screenStream = null;
         let base64Image = null;
@@ -69,13 +70,15 @@
                     screenStream.getTracks().forEach(t => t.stop());
                     screenStream = null;
                     btnTela.innerText = "📡 Monitorar Tela";
+                    btnTela.style.background = "#30363d";
                     document.getElementById('preview-container').style.display = "none";
                 } else {
                     screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
                     btnTela.innerText = "📺 MONITORANDO";
+                    btnTela.style.background = "#28a745";
                     document.getElementById('preview-container').style.display = "block";
                 }
-            } catch (e) { alert("Permita o acesso à tela."); }
+            } catch (e) { alert("Acesso à tela negado."); }
         };
 
         btnUpload.onclick = () => fileInput.click();
@@ -99,8 +102,7 @@
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0);
+            canvas.getContext('2d').drawImage(video, 0, 0);
             const data = canvas.toDataURL('image/jpeg', 0.5);
             video.pause();
             return data;
@@ -111,7 +113,7 @@
             if (!texto && !base64Image && !screenStream) return;
 
             btnEnviar.disabled = true;
-            const prompt = texto || "O que você vê?";
+            const prompt = texto || "Analise a imagem.";
             chatDiv.innerHTML += `<div class="message user">${prompt}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
             inputPergunta.value = '';
@@ -119,46 +121,37 @@
             let imgData = base64Image;
             if (screenStream) imgData = await capturarFrame();
 
-            // Estrutura de Chat Completion (mais estável)
-            const payload = {
-                model: "meta-llama/Llama-3.2-11B-Vision-Instruct",
-                messages: [
-                    {
-                        role: "user",
-                        content: [
-                            { type: "text", text: prompt },
-                            ...(imgData ? [{ type: "image_url", image_url: { url: imgData } }] : [])
-                        ]
-                    }
-                ],
-                max_tokens: 500
-            };
-
             try {
-                const response = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+                const response = await fetch("https://api-inference.huggingface.co/models/microsoft/Phi-3.5-vision-instruct", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${HF_TOKEN}`,
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        inputs: imgData ? {
+                            image: imgData.split(',')[1],
+                            text: prompt
+                        } : prompt
+                    })
                 });
 
                 const result = await response.json();
 
                 if (result.error) {
                     if (JSON.stringify(result.error).includes("loading")) {
-                        chatDiv.innerHTML += `<div class="message ia">A IA está acordando (carregando modelo)... Aguarde 15s e clique em ENVIAR novamente!</div>`;
+                        chatDiv.innerHTML += `<div class="message ia">O servidor está ligando... Aguarde 10s e clique em Enviar novamente!</div>`;
                     } else {
-                        chatDiv.innerHTML += `<div class="message ia" style="color:orange">Dica: Entre no site da Hugging Face e aceite os termos do modelo Llama 3.2 Vision.</div>`;
+                        throw new Error(result.error);
                     }
                 } else {
-                    const finalMsg = result.choices[0].message.content;
-                    chatDiv.innerHTML += `<div class="message ia">${finalMsg}</div>`;
-                    falar(finalMsg);
+                    const respostaIA = Array.isArray(result) ? result[0].generated_text : result.generated_text;
+                    const limpo = respostaIA.replace(prompt, "").trim();
+                    chatDiv.innerHTML += `<div class="message ia">${limpo}</div>`;
+                    falar(limpo);
                 }
             } catch (err) {
-                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro crítico de conexão. Verifique sua internet ou Token.</div>`;
+                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro de conexão. Tente de novo.</div>`;
             }
 
             btnEnviar.disabled = false;
