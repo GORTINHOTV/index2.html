@@ -32,7 +32,7 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Modelo atualizado para o Llama 3.2 90B! Agora estou mais inteligente. Pode mandar foto ou compartilhar a tela!</div>
+            <div class="message ia">Modelo atualizado para Llama 3.2 90B Instruct! Versão final e estável. Pode testar!</div>
         </div>
         
         <div class="input-area">
@@ -45,7 +45,6 @@
     </div>
 
     <script>
-        // SUA CHAVE GROQ
         const GROQ_API_KEY = "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"; 
         
         let screenStream = null;
@@ -134,9 +133,9 @@
                         "Authorization": `Bearer ${GROQ_API_KEY}`
                     },
                     body: JSON.stringify({
-                        model: "llama-3.2-90b-vision-preview", // MODELO NOVO AQUI
+                        model: "llama-3.2-90b-vision-instruct", // MODELO OFICIAL DE PRODUÇÃO
                         messages: [{ role: "user", content: conteudos }],
-                        temperature: 0.7,
+                        temperature: 0.5,
                         max_tokens: 1024
                     })
                 });
