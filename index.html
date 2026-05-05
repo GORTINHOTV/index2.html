@@ -3,56 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GORDINHO.IA - Pro</title>
+    <title>GORDINHO.IA - Vision Pro</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0b0e11; color: #e3e6e8; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        #chat-container { width: 100%; max-width: 600px; background: #1c2128; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #30363d; }
-        #chat { height: 400px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
-        .message { padding: 12px; border-radius: 15px; max-width: 85%; word-wrap: break-word; }
-        .user { background: #f55036; align-self: flex-end; }
-        .ia { background: #30363d; align-self: flex-start; }
-        .input-area { display: flex; padding: 15px; background: #22272e; gap: 10px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; }
-        button { padding: 10px; cursor: pointer; border-radius: 8px; border: none; background: #f55036; color: white; font-weight: bold; }
-        .controls { margin-bottom: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0b0e11; color: #e3e6e8; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        h2 { color: #f55036; text-transform: uppercase; margin-bottom: 10px; }
+        #chat-container { width: 100%; max-width: 600px; background: #1c2128; border-radius: 12px; overflow: hidden; border: 1px solid #30363d; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+        #chat { height: 450px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
+        .user { background: #f55036; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .input-area { display: flex; padding: 15px; background: #22272e; gap: 8px; flex-wrap: wrap; border-top: 1px solid #30363d; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; outline: none; min-width: 200px; }
+        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036; color: white; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #d43f2a; }
+        .btn-secondary { background: #30363d; }
+        .btn-active { background: #28a745 !important; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+        #preview-container { display: none; padding: 10px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
+        #preview-img { max-width: 150px; border-radius: 8px; border: 2px solid #f55036; }
     </style>
 </head>
 <body>
 
-    <h2>GORDINHO.IA PRO</h2>
+    <h2>GORDINHO.IA VISION</h2>
     
-    <div class="controls">
-        <button onclick="limparHistorico()">Limpar Histórico</button>
-    </div>
-
     <div id="chat-container">
+        <div id="preview-container">
+            <img id="preview-img" src="" alt="Preview">
+            <div id="status-tela" style="font-size: 12px; color: #28a745; margin-top: 5px;"></div>
+        </div>
         <div id="chat"></div>
+        
         <div class="input-area">
-            <input type="text" id="pergunta" placeholder="Escreva ou fale..." onkeypress="if(event.key === 'Enter') perguntarIA()">
+            <input type="text" id="pergunta" placeholder="Digite sua dúvida ou comando..." autocomplete="off" onkeypress="if(event.key === 'Enter') perguntarIA()">
             <button id="btnEnviar" onclick="perguntarIA()">Enviar</button>
+            <button class="btn-secondary" onclick="document.getElementById('fileInput').click()">+ Foto</button>
+            <button id="btnTela" class="btn-secondary" onclick="toggleScreenShare()">📡 Monitorar Tela</button>
+            <input type="file" id="fileInput" hidden accept="image/*" onchange="previewImage(this)">
         </div>
     </div>
 
     <script>
-        const API_KEY = "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";
-        let historico = JSON.parse(localStorage.getItem('chat_ia')) || [];
+        // SUA CHAVE GEMINI
+        const GEMINI_API_KEY = "AIzaSyDxpfU2M6AQZiRZXKD8UwTVdZzlHBQzh3U"; 
+        
+        let historico = JSON.parse(localStorage.getItem('chat_ia_vision')) || [];
+        let screenStream = null;
+        let base64Image = null;
 
-        // Carregar histórico ao abrir
         const chatDiv = document.getElementById('chat');
-        historico.forEach(msg => {
-            chatDiv.innerHTML += `<div class="message ${msg.role === 'user' ? 'user' : 'ia'}">${msg.content}</div>`;
-        });
-        chatDiv.scrollTop = chatDiv.scrollHeight;
+
+        // Carregar histórico
+        function renderizarChat() {
+            chatDiv.innerHTML = '<div class="message ia">Olá! Sou a Gordinho.IA. Posso ver sua tela ou fotos para te ajudar com códigos e dúvidas. Como começamos?</div>';
+            historico.forEach(msg => {
+                chatDiv.innerHTML += `<div class="message ${msg.role === 'user' ? 'user' : 'ia'}">${msg.content}</div>`;
+            });
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+        renderizarChat();
 
         function falar(texto) {
+            window.speechSynthesis.cancel(); // Para a fala anterior se houver
             const utterance = new SpeechSynthesisUtterance(texto);
             utterance.lang = 'pt-BR';
+            utterance.rate = 1.1;
             window.speechSynthesis.speak(utterance);
         }
 
-        function limparHistorico() {
-            localStorage.removeItem('chat_ia');
-            location.reload();
+        async function toggleScreenShare() {
+            const btn = document.getElementById('btnTela');
+            const status = document.getElementById('status-tela');
+            if (screenStream) {
+                screenStream.getTracks().forEach(t => t.stop());
+                screenStream = null;
+                btn.classList.remove('btn-active');
+                btn.innerText = "📡 Monitorar Tela";
+                document.getElementById('preview-container').style.display = "none";
+            } else {
+                try {
+                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    btn.classList.add('btn-active');
+                    btn.innerText = "📺 MONITORANDO";
+                    document.getElementById('preview-container').style.display = "block";
+                    status.innerText = "A IA está vendo sua tela em tempo real.";
+                } catch (e) { alert("Para a IA ajudar, você precisa permitir o compartilhamento de tela."); }
+            }
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    base64Image = e.target.result.split(',')[1];
+                    document.getElementById('preview-img').src = e.target.result;
+                    document.getElementById('preview-container').style.display = "block";
+                    document.getElementById('status-tela').innerText = "Foto carregada pronta para análise.";
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function capturarFrameTela() {
+            const video = document.createElement('video');
+            video.srcObject = screenStream;
+            await video.play();
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const data = canvas.toDataURL('image/jpeg', 0.6).split(',')[1];
+            video.pause();
+            return data;
         }
 
         async function perguntarIA() {
@@ -60,41 +122,64 @@
             const btn = document.getElementById('btnEnviar');
             const texto = input.value.trim();
 
-            if (!texto) return;
+            if (!texto && !base64Image && !screenStream) return;
+
             btn.disabled = true;
+            const promptUsuario = texto || "Analise o que você está vendo agora.";
+            
+            chatDiv.innerHTML += `<div class="message user">${promptUsuario}</div>`;
+            chatDiv.scrollTop = chatDiv.scrollHeight;
             input.value = '';
 
-            // Adicionar ao chat e ao histórico
-            chatDiv.innerHTML += `<div class="message user">${texto}</div>`;
-            historico.push({ role: "user", content: texto });
-            
-            chatDiv.scrollTop = chatDiv.scrollHeight;
+            let imagemParaEnviar = base64Image;
+            let usandoVisual = false;
+
+            if (screenStream) {
+                imagemParaEnviar = await capturarFrameTela();
+                usandoVisual = true;
+            } else if (base64Image) {
+                usandoVisual = true;
+            }
+
+            const payload = {
+                contents: [{
+                    parts: [
+                        { text: promptUsuario },
+                        ...(imagemParaEnviar ? [{ inline_data: { mime_type: "image/jpeg", data: imagemParaEnviar } }] : [])
+                    ]
+                }]
+            };
 
             try {
-                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                     method: "POST",
-                    headers: { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: "llama-3.1-8b-instant",
-                        messages: historico, // Envia o histórico para a IA ter memória!
-                        temperature: 0.7
-                    })
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();
-                const respostaIA = data.choices[0].message.content;
+                if (data.error) throw new Error(data.error.message);
+
+                const respostaIA = data.candidates[0].content.parts[0].text;
 
                 chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
-                historico.push({ role: "assistant", content: respostaIA });
                 
-                // Salvar no navegador
-                localStorage.setItem('chat_ia', JSON.stringify(historico));
-                
-                // Falar a resposta
-                falar(respostaIA);
+                // SALVAR NO HISTÓRICO
+                historico.push({ role: "user", content: promptUsuario });
+                historico.push({ role: "ia", content: respostaIA });
+                localStorage.setItem('chat_ia_vision', JSON.stringify(historico.slice(-20)));
 
-            } catch (error) {
-                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro: ${error.message}</div>`;
+                // RESPOSTA POR VOZ APENAS SE ESTIVER VENDO ALGO
+                if (usandoVisual) {
+                    falar(respostaIA);
+                }
+
+                // Limpar foto após envio
+                base64Image = null;
+                if (!screenStream) document.getElementById('preview-container').style.display = "none";
+
+            } catch (e) {
+                chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro: ${e.message}</div>`;
             }
 
             btn.disabled = false;
