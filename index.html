@@ -33,11 +33,11 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Eae! Troquei para o modelo Phi-3.5 Vision. Esse aqui não precisa de autorização da Meta, então vai funcionar de primeira! Manda um oi.</div>
+            <div class="message ia">Dessa vez vai! Se der erro de conexão, clica em enviar de novo em 5 segundos (o servidor pode estar "acordando").</div>
         </div>
         
         <div class="input-area">
-            <input type="text" id="pergunta" placeholder="O que você quer saber?..." autocomplete="off">
+            <input type="text" id="pergunta" placeholder="Mande sua dúvida..." autocomplete="off">
             <button id="btnEnviar">Enviar</button>
             <button class="btn-secondary" id="btnUpload">+ Foto</button>
             <button id="btnTela" class="btn-secondary">📡 Monitorar Tela</button>
@@ -47,6 +47,7 @@
 
     <script>
         const HF_TOKEN = "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"; 
+        const MODEL_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3.5-vision-instruct";
         
         let screenStream = null;
         let base64Image = null;
@@ -78,7 +79,7 @@
                     btnTela.classList.add('btn-active');
                     btnTela.innerText = "📺 MONITORANDO";
                     document.getElementById('preview-container').style.display = "block";
-                } catch (e) { alert("Acesso à tela negado."); }
+                } catch (e) { alert("Ops, precisa permitir a tela!"); }
             }
         };
 
@@ -87,16 +88,16 @@
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
-                reader.onload = (event) => {
-                    base64Image = event.target.result;
-                    document.getElementById('preview-img').src = event.target.result;
+                reader.onload = (ev) => {
+                    base64Image = ev.target.result;
+                    document.getElementById('preview-img').src = ev.target.result;
                     document.getElementById('preview-container').style.display = "block";
                 };
                 reader.readAsDataURL(file);
             }
         };
 
-        async function capturarFrameTela() {
+        async function capturarFrame() {
             const video = document.createElement('video');
             video.srcObject = screenStream;
             await video.play();
@@ -104,7 +105,7 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-            const data = canvas.toDataURL('image/jpeg', 0.6);
+            const data = canvas.toDataURL('image/jpeg', 0.5);
             video.pause();
             return data;
         }
@@ -114,23 +115,26 @@
             if (!texto && !base64Image && !screenStream) return;
 
             btnEnviar.disabled = true;
-            const promptUsuario = texto || "Descreva o que você está vendo.";
-            chatDiv.innerHTML += `<div class="message user">${promptUsuario}</div>`;
+            const prompt = texto || "O que está acontecendo nesta imagem?";
+            chatDiv.innerHTML += `<div class="message user">${prompt}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
             inputPergunta.value = '';
 
-            let imagemFinal = base64Image;
-            if (screenStream) imagemFinal = await capturarFrameTela();
+            let imgData = base64Image;
+            if (screenStream) imgData = await capturarFrame();
 
             try {
-                // Estrutura simplificada para o Phi-3.5 Vision
+                // Formato de envio robusto para Inference API
                 const payload = {
-                    inputs: promptUsuario,
-                    image: imagemFinal ? imagemFinal.split(',')[1] : null,
-                    parameters: { max_new_tokens: 500 }
+                    inputs: prompt,
+                    parameters: { max_new_tokens: 300 }
                 };
 
-                const response = await fetch("https://api-inference.huggingface.co/models/microsoft/Phi-3.5-vision-instruct", {
+                if (imgData) {
+                    payload.image = imgData.split(',')[1];
+                }
+
+                const response = await fetch(MODEL_URL, {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${HF_TOKEN}`,
@@ -139,40 +143,34 @@
                     body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
-                
-                let respostaIA = "";
-                if (data.error) {
-                    if (JSON.stringify(data.error).includes("loading")) {
-                        respostaIA = "Tô acordando o servidor... Tenta de novo em 10 segundos!";
+                const result = await response.json();
+
+                if (result.error) {
+                    if (JSON.stringify(result.error).includes("loading")) {
+                        chatDiv.innerHTML += `<div class="message ia">O cérebro da IA está ligando... Tenta clicar em Enviar de novo agora!</div>`;
                     } else {
-                        throw new Error(data.error);
+                        throw new Error(result.error);
                     }
                 } else {
-                    // O Phi retorna um formato de array as vezes
-                    respostaIA = Array.isArray(data) ? data[0].generated_text : (data.generated_text || "Não entendi nada, tenta de novo.");
+                    let finalMsg = Array.isArray(result) ? result[0].generated_text : (result.generated_text || "Não consegui processar.");
+                    // Limpeza básica para não repetir o prompt
+                    finalMsg = finalMsg.replace(prompt, "").trim();
+                    chatDiv.innerHTML += `<div class="message ia">${finalMsg}</div>`;
+                    falar(finalMsg);
                 }
 
-                // Limpa o texto da resposta (remove o prompt se ele vier junto)
-                respostaIA = respostaIA.replace(promptUsuario, "").trim();
-
-                chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
-                falar(respostaIA);
-
-            } catch (e) {
-                console.error(e);
-                chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro na conexão. Tente novamente.</div>`;
+            } catch (err) {
+                console.error(err);
+                chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro de conexão. Verifique se o seu Token está ativo ou tente novamente.</div>`;
             }
 
             btnEnviar.disabled = false;
             chatDiv.scrollTop = chatDiv.scrollHeight;
-            base64Image = null; 
+            base64Image = null;
         }
 
         btnEnviar.onclick = perguntarIA;
-        inputPergunta.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') perguntarIA();
-        });
+        inputPergunta.onkeypress = (e) => { if(e.key === 'Enter') perguntarIA(); };
     </script>
 </body>
 </html>
