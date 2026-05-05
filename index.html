@@ -16,7 +16,7 @@
         input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; outline: none; min-width: 200px; }
         button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036; color: white; font-weight: bold; transition: 0.2s; }
         button:hover { background: #d43f2a; }
-        .btn-secondary { background: #30363d; }
+        .btn-secondary { background: #30363d; color: white; cursor: pointer; border-radius: 8px; border: none; padding: 10px 15px; font-weight: bold; }
         .btn-active { background: #28a745 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         #preview-container { display: none; padding: 10px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
@@ -32,7 +32,7 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Teste final! Mande um "oi" ou tire uma print da tela para eu analisar.</div>
+            <div class="message ia">Eae! Sistema Groq ativado. Agora eu vejo sua tela e fotos em tempo real e de graça! Manda um oi.</div>
         </div>
         
         <div class="input-area">
@@ -45,7 +45,7 @@
     </div>
 
     <script>
-        const GEMINI_API_KEY = "AIzaSyAm5stEPqneCrmfCmGIVm_6OOtKZfZ3B0g"; 
+        const GROQ_API_KEY = "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"; 
         
         let screenStream = null;
         let base64Image = null;
@@ -80,7 +80,7 @@
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    base64Image = e.target.result.split(',')[1];
+                    base64Image = e.target.result;
                     document.getElementById('preview-img').src = e.target.result;
                     document.getElementById('preview-container').style.display = "block";
                 };
@@ -96,7 +96,7 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-            const data = canvas.toDataURL('image/jpeg', 0.5).split(',')[1];
+            const data = canvas.toDataURL('image/jpeg', 0.5);
             video.pause();
             return data;
         }
@@ -109,43 +109,45 @@
             if (!texto && !base64Image && !screenStream) return;
 
             btn.disabled = true;
-            const promptUsuario = texto || "Analise a imagem.";
+            const promptUsuario = texto || "O que você está vendo?";
             chatDiv.innerHTML += `<div class="message user">${promptUsuario}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
             input.value = '';
 
             let imagemParaEnviar = base64Image;
-            let temVisual = !!base64Image;
+            if (screenStream) imagemParaEnviar = await capturarFrameTela();
 
-            if (screenStream) {
-                imagemParaEnviar = await capturarFrameTela();
-                temVisual = true;
+            // Montando as mensagens no formato da Groq
+            const conteudos = [{ type: "text", text: promptUsuario }];
+            if (imagemParaEnviar) {
+                conteudos.push({
+                    type: "image_url",
+                    image_url: { url: imagemParaEnviar }
+                });
             }
 
-            const payload = {
-                contents: [{
-                    parts: [
-                        { text: promptUsuario },
-                        ...(temVisual ? [{ inline_data: { mime_type: "image/jpeg", data: imagemParaEnviar } }] : [])
-                    ]
-                }]
-            };
-
             try {
-                // Usando a rota v1 que é a mais oficial e estável
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${GROQ_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model: "llama-3.2-11b-vision-preview",
+                        messages: [{ role: "user", content: conteudos }],
+                        temperature: 0.7,
+                        max_tokens: 1024
+                    })
                 });
 
                 const data = await response.json();
                 if (data.error) throw new Error(data.error.message);
 
-                const respostaIA = data.candidates[0].content.parts[0].text;
+                const respostaIA = data.choices[0].message.content;
                 chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
                 
-                if (temVisual) falar(respostaIA);
+                falar(respostaIA);
 
             } catch (e) {
                 chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro: ${e.message}</div>`;
