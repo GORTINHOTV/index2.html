@@ -31,7 +31,7 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Ajustei para o modo de compatibilidade total. Se o servidor estiver dormindo, eu te aviso! Manda um oi.</div>
+            <div class="message ia">Ajustei a rota para o Llama 3.2 Vision. Se der erro agora, é porque o modelo está sendo carregado no servidor. Clique em enviar de novo em 10 segundos!</div>
         </div>
         
         <div class="input-area">
@@ -97,10 +97,10 @@
             video.srcObject = screenStream;
             await video.play();
             const canvas = document.createElement('canvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            const data = canvas.toDataURL('image/jpeg', 0.4); 
+            canvas.width = 640; // Reduzi a resolução para evitar erro de conexão
+            canvas.height = 480;
+            canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
+            const data = canvas.toDataURL('image/jpeg', 0.3); // Qualidade baixa para pacote pequeno
             video.pause();
             return data;
         }
@@ -110,7 +110,7 @@
             if (!texto && !base64Image && !screenStream) return;
 
             btnEnviar.disabled = true;
-            const prompt = texto || "O que está acontecendo aqui?";
+            const prompt = texto || "O que você vê?";
             chatDiv.innerHTML += `<div class="message user">${prompt}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
             inputPergunta.value = '';
@@ -119,36 +119,39 @@
             if (screenStream) imgData = await capturarFrame();
 
             try {
-                // Usando o modelo BLIP para maior compatibilidade de CORS se o Phi falhar
-                const response = await fetch("https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-large", {
+                const response = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${HF_TOKEN}`,
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        inputs: imgData ? imgData.split(',')[1] : prompt,
-                        wait_for_model: true
+                        model: "meta-llama/Llama-3.2-11B-Vision-Instruct",
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    { type: "text", text: prompt },
+                                    ...(imgData ? [{ type: "image_url", image_url: { url: imgData } }] : [])
+                                ]
+                            }
+                        ],
+                        max_tokens: 300
                     })
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                    // Blip retorna [{generated_text: "..."}]
-                    let respostaIA = Array.isArray(result) ? result[0].generated_text : (result.generated_text || "Entendi!");
+                    const respostaIA = result.choices[0].message.content;
                     chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
                     falar(respostaIA);
                 } else {
-                    if (JSON.stringify(result).includes("loading")) {
-                        chatDiv.innerHTML += `<div class="message ia">Servidor ligando... Clique de novo em 5 segundos!</div>`;
-                    } else {
-                        chatDiv.innerHTML += `<div class="message ia">Ops: ${result.error || 'Erro na API'}</div>`;
-                    }
+                    console.log("Erro:", result);
+                    chatDiv.innerHTML += `<div class="message ia">A IA está acordando... Tente clicar em Enviar de novo agora!</div>`;
                 }
             } catch (err) {
-                console.log(err);
-                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro de conexão. Tente novamente, o servidor pode estar instável.</div>`;
+                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro de conexão. Tente de novo, por favor.</div>`;
             }
 
             btnEnviar.disabled = false;
