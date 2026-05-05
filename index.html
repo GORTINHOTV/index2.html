@@ -10,16 +10,27 @@
         #chat-container { width: 100%; max-width: 600px; background: #1c2128; border-radius: 12px; overflow: hidden; border: 1px solid #30363d; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         #chat { height: 450px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
         .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
-        .user { background: #f55036; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .user { background: #f55036; color: white; align-self: flex-end; border-bottom-right-radius: 4```
+
+### O que mudou?
+*   O endpoint agora é: `.../v1/models/geminipx; }
+        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start;-1.5-flash-latest:generateContent...`
+*   Adicionar o **`-latest`** força a API a pegar a versão mais recente disponível border-bottom-left-radius: 4px; }
         .input-area { display: flex; padding: 15px; background: #22272e; gap: 8px; flex-wrap: wrap; border-top: 1px solid #30363d; }
-        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; outline: none; min-width: 200px; }
-        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036; color: white; font-weight: bold; transition: 0.2s; }
+         para a sua chave, ignorando se ela é beta ou estável.
+
+**Última dica importante:** Como você está subindo isso no GitHub,input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #44 o cache do navegador é seu pior inimigo. Toda vez que você atualizar o código:
+1.  Dê o `commit` e o `push`.
+2.4; background: #0d1117; color: white; outline: none; min-width: 200px; }
+        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036;  Espere 30 segundos.
+3.  No seu navegador, aperte **Ctrl + F5** (limpa o cache da página) color: white; font-weight: bold; transition: 0.2s; }
         button:hover { background: #d43f2a; }
         .btn-secondary { background: #30363d; }
-        .btn-active { background: #28a745 !important; animation: pulse 1.5s infinite; }
+        .btn-active { background: #28a745 !important para garantir que ele não está rodando a versão velha do script que deu erro.
+
+Se isso não funcionar, o problema pode ser a **região** (; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        #preview-container { display: none; padding: 10px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
+        #preview-container { display: none; padding: 1o Google às vezes bloqueia chamadas de certos IPs de servidores de hospedagem), mas o `-latest` costuma ser a chave mestra!0px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
         #preview-img { max-width: 150px; border-radius: 8px; border: 2px solid #f55036; }
     </style>
 </head>
@@ -44,7 +55,7 @@
     </div>
 
     <script>
-        // CHAVE ATUALIZADA
+        // CHAVE QUE VOCÊ CRIOU
         const GEMINI_API_KEY = "AIzaSyAm5stEPqneCrmfCmGIVm_6OOtKZfZ3B0g"; 
         
         let screenStream = null;
@@ -110,7 +121,7 @@
             if (!texto && !base64Image && !screenStream) return;
 
             btn.disabled = true;
-            const promptUsuario = texto || "Opa! Analise o que você está vendo.";
+            const promptUsuario = texto || "Analise a imagem.";
             
             chatDiv.innerHTML += `<div class="message user">${promptUsuario}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
@@ -134,8 +145,9 @@
             };
 
             try {
-                // A MUDANÇA ESTÁ AQUI: v1beta resolve o erro da imagem_caf23d.png
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                // MUDANÇA FINAL: Usando a URL v1beta e o modelo Flash especificando a versão
+                // Isso resolve o erro "not found for API version v1beta"
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${GEMINI_API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -143,13 +155,7 @@
 
                 const data = await response.json();
                 
-                if (data.error) {
-                    throw new Error(data.error.message);
-                }
-
-                if (!data.candidates || data.candidates.length === 0) {
-                    throw new Error("A IA não gerou uma resposta. Tente novamente.");
-                }
+                if (data.error) throw new Error(data.error.message);
 
                 const respostaIA = data.candidates[0].content.parts[0].text;
                 chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
@@ -158,7 +164,6 @@
 
             } catch (e) {
                 chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro: ${e.message}</div>`;
-                console.error("Erro detalhado:", e);
             }
 
             btn.disabled = false;
