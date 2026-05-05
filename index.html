@@ -31,11 +31,11 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Token hf_vCez... ativo! Se der erro, aperte F12 e veja o Console. Vamos tentar de novo!</div>
+            <div class="message ia">Agora vai! Ajustei a rota para evitar o erro de CORS. Mande um teste!</div>
         </div>
         
         <div class="input-area">
-            <input type="text" id="pergunta" placeholder="Diga algo ou mande imagem..." autocomplete="off">
+            <input type="text" id="pergunta" placeholder="Diga algo..." autocomplete="off">
             <button id="btnEnviar">Enviar</button>
             <button class="btn-secondary" id="btnUpload">+ Foto</button>
             <button class="btn-secondary" id="btnTela">📡 Tela</button>
@@ -45,7 +45,6 @@
 
     <script>
         const HF_TOKEN = "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"; 
-        const MODELO = "microsoft/Phi-3.5-vision-instruct";
         
         let screenStream = null;
         let base64Image = null;
@@ -101,7 +100,7 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-            const data = canvas.toDataURL('image/jpeg', 0.5);
+            const data = canvas.toDataURL('image/jpeg', 0.4); // Qualidade menor para ser mais rápido
             video.pause();
             return data;
         }
@@ -111,7 +110,7 @@
             if (!texto && !base64Image && !screenStream) return;
 
             btnEnviar.disabled = true;
-            const prompt = texto || "Descreva esta imagem.";
+            const prompt = texto || "O que você vê nessa imagem?";
             chatDiv.innerHTML += `<div class="message user">${prompt}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
             inputPergunta.value = '';
@@ -120,39 +119,43 @@
             if (screenStream) imgData = await capturarFrame();
 
             try {
-                // Montagem do payload simplificada para evitar erros de parse
-                let bodyContent = {
-                    inputs: imgData ? { image: imgData.split(',')[1], text: prompt } : prompt,
-                    parameters: { max_new_tokens: 300 }
-                };
-
-                const response = await fetch(`https://api-inference.huggingface.co/models/${MODELO}`, {
+                // Rota V1 é a que permite CORS no navegador
+                const response = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${HF_TOKEN}`,
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify(bodyContent)
+                    body: JSON.stringify({
+                        model: "microsoft/Phi-3.5-vision-instruct",
+                        messages: [
+                            {
+                                role: "user",
+                                content: [
+                                    { type: "text", text: prompt },
+                                    ...(imgData ? [{ type: "image_url", image_url: { url: imgData } }] : [])
+                                ]
+                            }
+                        ],
+                        max_tokens: 500
+                    })
                 });
 
                 const result = await response.json();
 
                 if (response.ok) {
-                    let respostaRaw = Array.isArray(result) ? result[0].generated_text : result.generated_text;
-                    let msgFinal = respostaRaw.replace(prompt, "").trim() || "Processado com sucesso!";
-                    chatDiv.innerHTML += `<div class="message ia">${msgFinal}</div>`;
-                    falar(msgFinal);
+                    const respostaIA = result.choices[0].message.content;
+                    chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
+                    falar(respostaIA);
                 } else {
-                    console.log("Erro API:", result);
                     if (JSON.stringify(result).includes("loading")) {
-                        chatDiv.innerHTML += `<div class="message ia">Servidor ligando... Tente de novo em 10s!</div>`;
+                        chatDiv.innerHTML += `<div class="message ia">Acordando o servidor... Tente de novo em 10s!</div>`;
                     } else {
-                        chatDiv.innerHTML += `<div class="message ia">Erro na API: ${result.error || 'Verifique o Token'}</div>`;
+                        chatDiv.innerHTML += `<div class="message ia">Erro: ${result.error.message || 'Falha na API'}</div>`;
                     }
                 }
             } catch (err) {
-                console.error("Erro Fetch:", err);
-                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro de conexão local ou internet.</div>`;
+                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro de conexão. Verifique sua internet.</div>`;
             }
 
             btnEnviar.disabled = false;
