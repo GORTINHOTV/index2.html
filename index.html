@@ -5,125 +5,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GORDINHO.IA - Vision Pro</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0b0e11; color: #e3e6e8; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        h2 { color: #f55036; text-transform: uppercase; margin-bottom: 10px; }
-        #chat-container { width: 100%; max-width: 600px; background: #1c2128; border-radius: 12px; overflow: hidden; border: 1px solid #30363d; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
-        #chat { height: 400px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
-        .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
-        .user { background: #f55036; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start; border-bottom-left-radius: 4px; border: 1px solid #444; }
-        .input-area { display: flex; padding: 15px; background: #22272e; gap: 8px; flex-wrap: wrap; border-top: 1px solid #30363d; }
-        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; outline: none; min-width: 200px; }
-        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036; color: white; font-weight: bold; transition: 0.2s; }
-        button:hover { background: #d43f2a; }
-        button:disabled { background: #555; cursor: not-allowed; }
-        .btn-secondary { background: #30363d; color: white; }
-        #preview-container { display: none; padding: 10px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
-        #preview-img { max-width: 150px; border-radius: 8px; border: 2px solid #f55036; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0b0e11; color: #e3e6e8; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        #chat-container { width: 100%; max-width: 600px; background: #1c2128; border-radius: 12px; border: 1px solid #30363d; overflow: hidden; }
+        #chat { height: 400px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 10px 15px; border-radius: 10px; max-width: 80%; }
+        .user { background: #f55036; align-self: flex-end; }
+        .ia { background: #30363d; align-self: flex-start; }
+        .input-area { display: flex; padding: 15px; background: #22272e; gap: 5px; }
+        input { flex: 1; padding: 10px; border-radius: 5px; border: 1px solid #444; background: #0d1117; color: white; }
+        button { padding: 10px; background: #f55036; color: white; border: none; cursor: pointer; font-weight: bold; }
+        #preview-img { max-width: 100px; display: none; margin: 10px; border: 2px solid #f55036; }
     </style>
 </head>
 <body>
 
-    <h2>GORDINHO.IA VISION PRO</h2>
-    
+    <h2>GORDINHO.IA - MODO LLAMA 3.2</h2>
+    <p style="font-size: 12px; color: #888;">Ative o acesso em: cors-anywhere.herokuapp.com/corsdemo</p>
+
     <div id="chat-container">
-        <div id="preview-container">
-            <img id="preview-img" src="" alt="Preview">
-        </div>
+        <img id="preview-img">
         <div id="chat">
-            <div class="message ia">Ajustei a rota para o Llama 3.2 Vision. Se der erro agora, é porque o modelo está sendo carregado no servidor. Clique em enviar de novo em 10 segundos!</div>
+            <div class="message ia">Aguardando seu comando...</div>
         </div>
-        
         <div class="input-area">
-            <input type="text" id="pergunta" placeholder="Diga algo..." autocomplete="off">
-            <button id="btnEnviar">Enviar</button>
-            <button class="btn-secondary" id="btnUpload">+ Foto</button>
-            <button class="btn-secondary" id="btnTela">📡 Tela</button>
+            <input type="text" id="pergunta" placeholder="Mande sua dúvida...">
+            <button id="btnEnviar">ENVIAR</button>
+            <button id="btnUpload" style="background:#444">FOTO</button>
             <input type="file" id="fileInput" hidden accept="image/*">
         </div>
     </div>
 
     <script>
-        const HF_TOKEN = "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"; 
-        
-        let screenStream = null;
+        const HF_TOKEN = "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";
+        const PROXY = "https://cors-anywhere.herokuapp.com/"; // Pula o erro de conexão
+        const API_URL = "https://api-inference.huggingface.co/v1/chat/completions";
+
         let base64Image = null;
 
-        const chatDiv = document.getElementById('chat');
-        const inputPergunta = document.getElementById('pergunta');
-        const btnEnviar = document.getElementById('btnEnviar');
-        const btnTela = document.getElementById('btnTela');
-        const btnUpload = document.getElementById('btnUpload');
-        const fileInput = document.getElementById('fileInput');
-
-        function falar(texto) {
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(texto);
-            utterance.lang = 'pt-BR';
-            window.speechSynthesis.speak(utterance);
-        }
-
-        btnTela.onclick = async () => {
-            try {
-                if (screenStream) {
-                    screenStream.getTracks().forEach(t => t.stop());
-                    screenStream = null;
-                    btnTela.innerText = "📡 Tela";
-                    document.getElementById('preview-container').style.display = "none";
-                } else {
-                    screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                    btnTela.innerText = "📺 ON";
-                    document.getElementById('preview-container').style.display = "block";
-                }
-            } catch (e) { console.error(e); }
+        document.getElementById('btnUpload').onclick = () => document.getElementById('fileInput').click();
+        
+        document.getElementById('fileInput').onchange = (e) => {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                base64Image = ev.target.result;
+                document.getElementById('preview-img').src = ev.target.result;
+                document.getElementById('preview-img').style.display = "block";
+            };
+            reader.readAsDataURL(e.target.files[0]);
         };
 
-        btnUpload.onclick = () => fileInput.click();
-        fileInput.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    base64Image = ev.target.result;
-                    document.getElementById('preview-img').src = ev.target.result;
-                    document.getElementById('preview-container').style.display = "block";
-                };
-                reader.readAsDataURL(file);
-            }
-        };
+        async function enviarParaIA() {
+            const texto = document.getElementById('pergunta').value;
+            if(!texto && !base64Image) return;
 
-        async function capturarFrame() {
-            const video = document.createElement('video');
-            video.srcObject = screenStream;
-            await video.play();
-            const canvas = document.createElement('canvas');
-            canvas.width = 640; // Reduzi a resolução para evitar erro de conexão
-            canvas.height = 480;
-            canvas.getContext('2d').drawImage(video, 0, 0, 640, 480);
-            const data = canvas.toDataURL('image/jpeg', 0.3); // Qualidade baixa para pacote pequeno
-            video.pause();
-            return data;
-        }
-
-        async function perguntarIA() {
-            const texto = inputPergunta.value.trim();
-            if (!texto && !base64Image && !screenStream) return;
-
-            btnEnviar.disabled = true;
-            const prompt = texto || "O que você vê?";
-            chatDiv.innerHTML += `<div class="message user">${prompt}</div>`;
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-            inputPergunta.value = '';
-
-            let imgData = base64Image;
-            if (screenStream) imgData = await capturarFrame();
+            const chat = document.getElementById('chat');
+            chat.innerHTML += `<div class="message user">${texto || "Analise a imagem"}</div>`;
+            document.getElementById('pergunta').value = "";
 
             try {
-                const response = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
+                const response = await fetch(PROXY + API_URL, { // PROXY + URL evita o erro de conexão
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${HF_TOKEN}`,
-                        "Content-Type": "application/json"
+                        "Content-Type": "application/json",
+                        "x-requested-with": "XMLHttpRequest"
                     },
                     body: JSON.stringify({
                         model: "meta-llama/Llama-3.2-11B-Vision-Instruct",
@@ -131,36 +76,27 @@
                             {
                                 role: "user",
                                 content: [
-                                    { type: "text", text: prompt },
-                                    ...(imgData ? [{ type: "image_url", image_url: { url: imgData } }] : [])
+                                    { type: "text", text: texto || "Descreva esta imagem" },
+                                    ...(base64Image ? [{ type: "image_url", image_url: { url: base64Image } }] : [])
                                 ]
                             }
                         ],
-                        max_tokens: 300
+                        max_tokens: 200
                     })
                 });
 
-                const result = await response.json();
-
-                if (response.ok) {
-                    const respostaIA = result.choices[0].message.content;
-                    chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
-                    falar(respostaIA);
-                } else {
-                    console.log("Erro:", result);
-                    chatDiv.innerHTML += `<div class="message ia">A IA está acordando... Tente clicar em Enviar de novo agora!</div>`;
-                }
+                const data = await response.json();
+                const respostaIA = data.choices[0].message.content;
+                
+                chat.innerHTML += `<div class="message ia">${respostaIA}</div>`;
             } catch (err) {
-                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro de conexão. Tente de novo, por favor.</div>`;
+                chat.innerHTML += `<div class="message ia" style="color:red">Erro: Ative o CORS no link acima e tente novamente!</div>`;
+                console.error(err);
             }
-
-            btnEnviar.disabled = false;
-            chatDiv.scrollTop = chatDiv.scrollHeight;
-            base64Image = null;
+            chat.scrollTop = chat.scrollHeight;
         }
 
-        btnEnviar.onclick = perguntarIA;
-        inputPergunta.onkeypress = (e) => { if(e.key === 'Enter') perguntarIA(); };
+        document.getElementById('btnEnviar').onclick = enviarParaIA;
     </script>
 </body>
 </html>
