@@ -1,6 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
+Para resolver    <meta charset="UTF-8">
+    < esse erro persistente demeta name="viewport" content="width=device-width "modelo não encontrado", vamos usar a, initial-scale=1.0">
+    <title>GORDINHO.IA - Vision Pro</title>
+    <style>
+        body { font- versão técnica mais estável do Gemini.family: 'Segoe UI', sans-serif; background: #0b0e11; color: #e3e6e8; display: flex; flex- Percebi que o Google está rejeitando tantodirection: column; align-items: center; padding: 20px; margin: 0; }
+        h2 { color: #f5503 a `v1` quanto a 6; text-transform: uppercase; margin-bottom: 10px; }
+        #chat-container { width: 100%; max-width:`v1beta` com nomes simples.
+
+A 600px; background: #1c2128; border-radius: 12px; overflow: hidden; border: 1px solid # solução definitiva é usar o endpoint **`v30363d; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,1`** com o modelo **`gemini-10,0.5); }
+        #chat { height: 450px; overflow-y: auto; padding: 20px; display: flex.5-flash-latest`**. Esse; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
+        .message { padding: 12px 16px nome "latest" (último) é uma; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 15px; palavra-chave que o Google usa para garantir word-wrap: break-word; }
+        .user { background: #f55036; color: white; align-self: flex-end; a compatibilidade.
+
+### Copie o border-bottom-right-radius: 4px; }
+        .ia { background: #30363d; color: #e3e6e código corrigido abaixo:
+```html
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GORDINHO.IA - Vision Pro</title>
@@ -10,27 +29,16 @@
         #chat-container { width: 100%; max-width: 600px; background: #1c2128; border-radius: 12px; overflow: hidden; border: 1px solid #30363d; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
         #chat { height: 450px; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
         .message { padding: 12px 16px; border-radius: 15px; max-width: 85%; line-height: 1.5; font-size: 15px; word-wrap: break-word; }
-        .user { background: #f55036; color: white; align-self: flex-end; border-bottom-right-radius: 4```
-
-### O que mudou?
-*   O endpoint agora é: `.../v1/models/geminipx; }
-        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start;-1.5-flash-latest:generateContent...`
-*   Adicionar o **`-latest`** força a API a pegar a versão mais recente disponível border-bottom-left-radius: 4px; }
+        .user { background: #f55036; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .ia { background: #30363d; color: #e3e6e8; align-self: flex-start; border-bottom-left-radius: 4px; }
         .input-area { display: flex; padding: 15px; background: #22272e; gap: 8px; flex-wrap: wrap; border-top: 1px solid #30363d; }
-         para a sua chave, ignorando se ela é beta ou estável.
-
-**Última dica importante:** Como você está subindo isso no GitHub,input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #44 o cache do navegador é seu pior inimigo. Toda vez que você atualizar o código:
-1.  Dê o `commit` e o `push`.
-2.4; background: #0d1117; color: white; outline: none; min-width: 200px; }
-        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036;  Espere 30 segundos.
-3.  No seu navegador, aperte **Ctrl + F5** (limpa o cache da página) color: white; font-weight: bold; transition: 0.2s; }
+        input[type="text"] { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d1117; color: white; outline: none; min-width: 200px; }
+        button { padding: 10px 15px; cursor: pointer; border-radius: 8px; border: none; background: #f55036; color: white; font-weight: bold; transition: 0.2s; }
         button:hover { background: #d43f2a; }
         .btn-secondary { background: #30363d; }
-        .btn-active { background: #28a745 !important para garantir que ele não está rodando a versão velha do script que deu erro.
-
-Se isso não funcionar, o problema pode ser a **região** (; animation: pulse 1.5s infinite; }
+        .btn-active { background: #28a745 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-        #preview-container { display: none; padding: 1o Google às vezes bloqueia chamadas de certos IPs de servidores de hospedagem), mas o `-latest` costuma ser a chave mestra!0px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
+        #preview-container { display: none; padding: 10px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
         #preview-img { max-width: 150px; border-radius: 8px; border: 2px solid #f55036; }
     </style>
 </head>
@@ -55,7 +63,6 @@ Se isso não funcionar, o problema pode ser a **região** (; animation: pulse 1.
     </div>
 
     <script>
-        // CHAVE QUE VOCÊ CRIOU
         const GEMINI_API_KEY = "AIzaSyAm5stEPqneCrmfCmGIVm_6OOtKZfZ3B0g"; 
         
         let screenStream = null;
@@ -145,9 +152,19 @@ Se isso não funcionar, o problema pode ser a **região** (; animation: pulse 1.
             };
 
             try {
-                // MUDANÇA FINAL: Usando a URL v1beta e o modelo Flash especificando a versão
-                // Isso resolve o erro "not found for API version v1beta"
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${GEMINI_API_KEY}`, {
+                // ALTERAÇÃO CRUCIAL: Usando a rota v1 estável com o sufixo -latest
+                const response = await fetch(`[https://generativelanguage.googleapis.com/v1/models/gemini](https://generativelanguage.googleapis.com/v1/models/gemini)```
+
+### O que mudou?
+*   O endpoint agora é: `.../v1/models/gemini-1.5-flash-latest:generateContent...`
+*   Adicionar o **`-latest`** força a API a pegar a versão mais recente disponível para a sua chave, ignorando se ela é beta ou estável.
+
+**Última dica importante:** Como você está subindo isso no GitHub, o cache do navegador é seu pior inimigo. Toda vez que você atualizar o código:
+1.  Dê o `commit` e o `push`.
+2.  Espere 30 segundos.
+3.  No seu navegador, aperte **Ctrl + F5** (limpa o cache da página) para garantir que ele não está rodando a versão velha do script que deu erro.
+
+Se isso não funcionar, o problema pode ser a **região** (o Google às vezes bloqueia chamadas de certos IPs de servidores de hospedagem), mas o `-latest` costuma ser a chave mestra!-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -156,6 +173,10 @@ Se isso não funcionar, o problema pode ser a **região** (; animation: pulse 1.
                 const data = await response.json();
                 
                 if (data.error) throw new Error(data.error.message);
+
+                if (!data.candidates || data.candidates.length === 0) {
+                    throw new Error("A IA não retornou resposta. Tente novamente.");
+                }
 
                 const respostaIA = data.candidates[0].content.parts[0].text;
                 chatDiv.innerHTML += `<div class="message ia">${respostaIA}</div>`;
