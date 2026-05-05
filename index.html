@@ -25,7 +25,7 @@
 </head>
 <body>
 
-    <h2>GORDINHO.IA VISION</h2>
+    <h2>GORDINHO.IA VISION PRO</h2>
     
     <div id="chat-container">
         <div id="preview-container">
@@ -44,7 +44,6 @@
     </div>
 
     <script>
-        // SUA CHAVE GEMINI
         const GEMINI_API_KEY = "AIzaSyDxpfU2M6AQZiRZXKD8UwTVdZzlHBQzh3U"; 
         
         let historico = JSON.parse(localStorage.getItem('chat_ia_vision')) || [];
@@ -150,8 +149,8 @@
             };
 
             try {
-                // CORREÇÃO: Usando a URL com "gemini-1.5-flash-latest" para evitar o erro de versão
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+                // ALTERAÇÃO: Usando a URL v1 estável para evitar erros de versão beta
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
