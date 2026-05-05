@@ -18,8 +18,6 @@
         button:hover { background: #d43f2a; }
         button:disabled { background: #555; cursor: not-allowed; }
         .btn-secondary { background: #30363d; color: white; }
-        .btn-active { background: #28a745 !important; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
         #preview-container { display: none; padding: 10px; background: #0d1117; text-align: center; border-bottom: 1px solid #333; }
         #preview-img { max-width: 150px; border-radius: 8px; border: 2px solid #f55036; }
     </style>
@@ -33,7 +31,7 @@
             <img id="preview-img" src="" alt="Preview">
         </div>
         <div id="chat">
-            <div class="message ia">Dessa vez vai! Se der erro de conexão, clica em enviar de novo em 5 segundos (o servidor pode estar "acordando").</div>
+            <div class="message ia">Conexão atualizada! Se der erro, aguarde 10s e tente enviar novamente. Estou ligando os motores...</div>
         </div>
         
         <div class="input-area">
@@ -47,7 +45,6 @@
 
     <script>
         const HF_TOKEN = "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"; 
-        const MODEL_URL = "https://api-inference.huggingface.co/models/microsoft/Phi-3.5-vision-instruct";
         
         let screenStream = null;
         let base64Image = null;
@@ -67,20 +64,18 @@
         }
 
         btnTela.onclick = async () => {
-            if (screenStream) {
-                screenStream.getTracks().forEach(t => t.stop());
-                screenStream = null;
-                btnTela.classList.remove('btn-active');
-                btnTela.innerText = "📡 Monitorar Tela";
-                document.getElementById('preview-container').style.display = "none";
-            } else {
-                try {
+            try {
+                if (screenStream) {
+                    screenStream.getTracks().forEach(t => t.stop());
+                    screenStream = null;
+                    btnTela.innerText = "📡 Monitorar Tela";
+                    document.getElementById('preview-container').style.display = "none";
+                } else {
                     screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                    btnTela.classList.add('btn-active');
                     btnTela.innerText = "📺 MONITORANDO";
                     document.getElementById('preview-container').style.display = "block";
-                } catch (e) { alert("Ops, precisa permitir a tela!"); }
-            }
+                }
+            } catch (e) { alert("Permita o acesso à tela."); }
         };
 
         btnUpload.onclick = () => fileInput.click();
@@ -104,7 +99,8 @@
             const canvas = document.createElement('canvas');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
             const data = canvas.toDataURL('image/jpeg', 0.5);
             video.pause();
             return data;
@@ -115,7 +111,7 @@
             if (!texto && !base64Image && !screenStream) return;
 
             btnEnviar.disabled = true;
-            const prompt = texto || "O que está acontecendo nesta imagem?";
+            const prompt = texto || "O que você vê?";
             chatDiv.innerHTML += `<div class="message user">${prompt}</div>`;
             chatDiv.scrollTop = chatDiv.scrollHeight;
             inputPergunta.value = '';
@@ -123,18 +119,23 @@
             let imgData = base64Image;
             if (screenStream) imgData = await capturarFrame();
 
+            // Estrutura de Chat Completion (mais estável)
+            const payload = {
+                model: "meta-llama/Llama-3.2-11B-Vision-Instruct",
+                messages: [
+                    {
+                        role: "user",
+                        content: [
+                            { type: "text", text: prompt },
+                            ...(imgData ? [{ type: "image_url", image_url: { url: imgData } }] : [])
+                        ]
+                    }
+                ],
+                max_tokens: 500
+            };
+
             try {
-                // Formato de envio robusto para Inference API
-                const payload = {
-                    inputs: prompt,
-                    parameters: { max_new_tokens: 300 }
-                };
-
-                if (imgData) {
-                    payload.image = imgData.split(',')[1];
-                }
-
-                const response = await fetch(MODEL_URL, {
+                const response = await fetch("https://api-inference.huggingface.co/v1/chat/completions", {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${HF_TOKEN}`,
@@ -147,21 +148,17 @@
 
                 if (result.error) {
                     if (JSON.stringify(result.error).includes("loading")) {
-                        chatDiv.innerHTML += `<div class="message ia">O cérebro da IA está ligando... Tenta clicar em Enviar de novo agora!</div>`;
+                        chatDiv.innerHTML += `<div class="message ia">A IA está acordando (carregando modelo)... Aguarde 15s e clique em ENVIAR novamente!</div>`;
                     } else {
-                        throw new Error(result.error);
+                        chatDiv.innerHTML += `<div class="message ia" style="color:orange">Dica: Entre no site da Hugging Face e aceite os termos do modelo Llama 3.2 Vision.</div>`;
                     }
                 } else {
-                    let finalMsg = Array.isArray(result) ? result[0].generated_text : (result.generated_text || "Não consegui processar.");
-                    // Limpeza básica para não repetir o prompt
-                    finalMsg = finalMsg.replace(prompt, "").trim();
+                    const finalMsg = result.choices[0].message.content;
                     chatDiv.innerHTML += `<div class="message ia">${finalMsg}</div>`;
                     falar(finalMsg);
                 }
-
             } catch (err) {
-                console.error(err);
-                chatDiv.innerHTML += `<div class="message ia" style="color: #ff6b6b">Erro de conexão. Verifique se o seu Token está ativo ou tente novamente.</div>`;
+                chatDiv.innerHTML += `<div class="message ia" style="color:red">Erro crítico de conexão. Verifique sua internet ou Token.</div>`;
             }
 
             btnEnviar.disabled = false;
