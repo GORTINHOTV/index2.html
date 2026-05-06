@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GORDINHO.IA - Realtime</title>
+    <title>GORDINHO.IA - Oficial</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0b0b0b; color: white; display: flex; flex-direction: column; height: 100vh; margin: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #000; color: white; margin: 0; display: flex; flex-direction: column; height: 100vh; }
         #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { padding: 12px; border-radius: 15px; max-width: 80%; font-size: 16px; line-height: 1.4; }
-        .user { background: #007bff; align-self: flex-end; border-bottom-right-radius: 2px; }
-        .bot { background: #2c2c2c; align-self: flex-start; border-bottom-left-radius: 2px; }
-        #input-area { padding: 15px; background: #121212; display: flex; gap: 10px; border-top: 1px solid #333; }
-        input { flex: 1; padding: 12px; border-radius: 25px; border: 1px solid #444; background: #1e1e1e; color: white; outline: none; }
-        button { padding: 10px 20px; background: #28a745; color: white; border: none; cursor: pointer; border-radius: 25px; font-weight: bold; }
+        .msg { padding: 12px; border-radius: 15px; max-width: 85%; word-wrap: break-word; }
+        .user { background: #007bff; align-self: flex-end; }
+        .bot { background: #333; align-self: flex-start; border: 1px solid #444; }
+        #input-area { padding: 15px; background: #111; display: flex; gap: 10px; border-top: 1px solid #333; }
+        input { flex: 1; padding: 12px; border-radius: 25px; border: none; background: #222; color: white; outline: none; }
+        button { padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -20,16 +20,15 @@
 <div id="chat"></div>
 
 <div id="input-area">
-    <input type="text" id="mensagem" placeholder="Manda um salve pro Gordinho..." onkeypress="if(event.key === 'Enter') enviar()">
+    <input type="text" id="mensagem" placeholder="Manda a letra pro Gordinho..." onkeypress="if(event.key === 'Enter') enviar()">
     <button onclick="enviar()">Enviar</button>
 </div>
 
 <script type="module">
-  // Carregando o Firebase de um jeito que funciona direto no GitHub Pages
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getDatabase, ref, push, onChildAdded } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-  // Suas chaves que você acabou de pegar!
+  // Configurações que você pegou do Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyDWH4Zp1XfWLeRtHMJjsI_b9mw_f68bpOY",
     authDomain: "gordinhoia.firebaseapp.com",
@@ -44,23 +43,41 @@
   const db = getDatabase(app);
   const chatRef = ref(db, 'mensagens');
 
-  // Função para enviar a mensagem para o banco do Google
-  window.enviar = () => {
+  // Sua chave do Gemini que você acabou de mandar!
+  const GEMINI_KEY = "AIzaSyDnj6gJwAcOFWRhMW_6gaVhwqjvVr_yCZM";
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+
+  window.enviar = async () => {
     const input = document.getElementById('mensagem');
     const texto = input.value.trim();
     
     if (texto !== "") {
-      push(chatRef, {
-        nome: "Brunno",
-        texto: texto,
-        tipo: "user",
-        timestamp: Date.now()
-      });
+      // 1. Salva sua mensagem no Firebase
+      await push(chatRef, { texto: texto, tipo: "user" });
       input.value = "";
+
+      // 2. Chama o Gemini pra pensar
+      try {
+        const response = await fetch(GEMINI_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: texto }] }]
+          })
+        });
+
+        const data = await response.json();
+        const respostaIA = data.candidates[0].content.parts[0].text;
+
+        // 3. Salva a resposta da IA no Firebase
+        await push(chatRef, { texto: respostaIA, tipo: "bot" });
+      } catch (error) {
+        console.error("Erro na IA:", error);
+      }
     }
   };
 
-  // Essa parte faz a mágica: quando chega mensagem no banco, ela brota na tela
+  // Escuta o banco e mostra na tela na hora
   onChildAdded(chatRef, (snapshot) => {
     const msg = snapshot.val();
     const chat = document.getElementById('chat');
@@ -68,7 +85,7 @@
     div.className = `msg ${msg.tipo}`;
     div.innerText = msg.texto;
     chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight; // Sempre desce o chat pro final
+    chat.scrollTop = chat.scrollHeight;
   });
 </script>
 
