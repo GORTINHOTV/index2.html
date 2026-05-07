@@ -1,12 +1,498 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <title>Gordinho IA</title>
-    <style>body { background: #000; color: #fff; font-family: sans-serif; padding: 20px; }</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GORDINHO.IA</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial;
+}
+
+body{
+    background:#0d0d0d;
+    color:white;
+    height:100vh;
+    overflow:hidden;
+}
+
+#chat{
+    height:100vh;
+    overflow-y:auto;
+    padding:20px;
+    padding-bottom:130px;
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+.topbar{
+    width:100%;
+    text-align:center;
+    padding:10px;
+    margin-bottom:10px;
+}
+
+.logo{
+    font-size:32px;
+    font-weight:bold;
+}
+
+.sub{
+    color:#8f8f8f;
+    margin-top:5px;
+    font-size:14px;
+}
+
+.msg{
+    max-width:85%;
+    padding:14px 18px;
+    border-radius:20px;
+    line-height:1.5;
+    word-wrap:break-word;
+    animation:fade .2s ease;
+}
+
+@keyframes fade{
+    from{
+        opacity:0;
+        transform:translateY(10px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0px);
+    }
+}
+
+.user{
+    background:#10a37f;
+    align-self:flex-end;
+    border-bottom-right-radius:5px;
+}
+
+.bot{
+    background:#1b1b1b;
+    align-self:flex-start;
+    border-bottom-left-radius:5px;
+    border:1px solid #2d2d2d;
+}
+
+#input-area{
+    position:fixed;
+    bottom:0;
+    left:0;
+    width:100%;
+    padding:15px;
+    background:#111;
+    display:flex;
+    gap:10px;
+    border-top:1px solid #222;
+}
+
+input{
+    flex:1;
+    padding:14px;
+    border:none;
+    outline:none;
+    border-radius:30px;
+    background:#1f1f1f;
+    color:white;
+    font-size:15px;
+}
+
+button{
+    padding:12px 18px;
+    border:none;
+    border-radius:50px;
+    background:#10a37f;
+    color:white;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+button:hover{
+    opacity:0.9;
+}
+
+#imgBtn{
+    background:#2a2a2a;
+}
+
+img.chatImage{
+    max-width:250px;
+    border-radius:15px;
+    margin-top:10px;
+    border:1px solid #333;
+}
+
+</style>
 </head>
 <body>
-    <h1>O Gordinho IA está voltando...</h1>
-    <p>Aguarde o sinal verde do GitHub!</p>
+
+<div id="chat">
+
+    <div class="topbar">
+
+        <div class="logo">
+            GORDINHO.IA
+        </div>
+
+        <div class="sub">
+            Estamos na primeira versão ent releve erros. Modo imagem indisponível no momento
+        </div>
+
+    </div>
+
+    <div class="msg bot">
+        Eae Sou a GORDINHO.IA Oque manda hoje? <br>
+    </div>
+
+</div>
+
+<div id="input-area">
+
+    <input 
+        type="file" 
+        id="imageInput" 
+        accept="image/*" 
+        hidden
+    >
+
+    <button 
+        id="imgBtn"
+        onclick="document.getElementById('imageInput').click()"
+    >
+        Foto
+    </button>
+
+    <input
+        type="text"
+        id="mensagem"
+        placeholder="Pergunte algo para GORDINHO.IA..."
+        onkeypress="if(event.key === 'Enter') enviar()"
+    >
+
+    <button onclick="enviar()">
+        Enviar
+    </button>
+
+</div>
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+
+import {
+    getDatabase,
+    ref,
+    push
+}
+from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+
+// ================= FIREBASE =================
+
+const firebaseConfig = {
+
+    apiKey: "AIzaSyDWH4Zp1XfWLeRtHMJjsI_b9mw_f68bpOY",
+
+    authDomain: "gordinhoia.firebaseapp.com",
+
+    projectId: "gordinhoia",
+
+    databaseURL:
+    "https://gordinhoia-default-rtdb.firebaseio.com/",
+
+    appId:
+    "1:282661207508:web:1560e786e7c784c505aa41"
+
+};
+
+const app = initializeApp(firebaseConfig);
+
+const db = getDatabase(app);
+
+const chatRef = ref(db, "mensagens");
+
+
+// ================= OPENROUTER =================
+
+const OPENROUTER_KEY =
+"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";
+
+
+// ================= CHAT =================
+
+function criarMensagem(texto, tipo, imagem=null){
+
+    const chat =
+    document.getElementById("chat");
+
+    const div =
+    document.createElement("div");
+
+    div.className =
+    "msg " + tipo;
+
+    if(texto){
+
+        const txt =
+        document.createElement("div");
+
+        txt.innerText = texto;
+
+        div.appendChild(txt);
+
+    }
+
+    if(imagem){
+
+        const img =
+        document.createElement("img");
+
+        img.src = imagem;
+
+        img.className = "chatImage";
+
+        div.appendChild(img);
+
+    }
+
+    chat.appendChild(div);
+
+    chat.scrollTop =
+    chat.scrollHeight;
+
+}
+
+
+// ================= ENVIAR =================
+
+window.enviar = async () => {
+
+    const input =
+    document.getElementById("mensagem");
+
+    const imageInput =
+    document.getElementById("imageInput");
+
+    const texto =
+    input.value.trim();
+
+    const file =
+    imageInput.files[0];
+
+    if(!texto && !file) return;
+
+
+    let imageBase64 = null;
+
+    let imageUrl = null;
+
+
+    // ================= FOTO =================
+
+    if(file){
+
+        imageUrl =
+        URL.createObjectURL(file);
+
+        imageBase64 =
+        await new Promise((resolve)=>{
+
+            const reader =
+            new FileReader();
+
+            reader.onload = ()=>{
+
+                resolve(reader.result);
+
+            };
+
+            reader.readAsDataURL(file);
+
+        });
+
+    }
+
+
+    // ================= USER MSG =================
+
+    criarMensagem(
+        texto,
+        "user",
+        imageUrl
+    );
+
+    input.value = "";
+
+    imageInput.value = "";
+
+
+    // ================= IA =================
+
+    try{
+
+        let userContent = [];
+
+        if(texto){
+
+            userContent.push({
+
+                type:"text",
+
+                text:texto
+
+            });
+
+        }
+
+        // ================= FOTO IA =================
+
+        if(imageBase64){
+
+            userContent.push({
+
+                type:"image_url",
+
+                image_url:{
+
+                    url:imageBase64
+
+                }
+
+            });
+
+        }
+
+        const response = await fetch(
+
+        "https://openrouter.ai/api/v1/chat/completions",
+
+        {
+
+            method:"POST",
+
+            headers:{
+
+                "Authorization":
+                `Bearer ${OPENROUTER_KEY}`,
+
+                "Content-Type":"application/json"
+
+            },
+
+            body:JSON.stringify({
+
+                model:
+                "openai/gpt-oss-120b:free",
+
+                messages:[
+
+                    {
+
+                        role:"system",
+
+                        content:
+                        "Você é a GORDINHO.IA, uma IA moderna, amigável, inteligente e divertida."
+
+                    },
+
+                    {
+
+                        role:"user",
+
+                        content:userContent
+
+                    }
+
+                ]
+
+            })
+
+        });
+
+        const data =
+        await response.json();
+
+        console.log(data);
+
+
+        // ================= ERRO =================
+
+        if(data.error){
+
+            criarMensagem(
+
+                "ERRO: " + data.error.message,
+
+                "bot"
+
+            );
+
+            return;
+
+        }
+
+
+        // ================= RESPOSTA =================
+
+        let resposta =
+        "Erro ao gerar resposta.";
+
+        if(
+
+            data.choices &&
+
+            data.choices[0]
+
+        ){
+
+            resposta =
+            data.choices[0]
+            .message.content;
+
+        }
+
+        criarMensagem(
+            resposta,
+            "bot"
+        );
+
+        await push(chatRef,{
+
+            texto:resposta,
+
+            tipo:"bot"
+
+        });
+
+    }
+
+    catch(e){
+
+        console.log(e);
+
+        criarMensagem(
+
+            "Erro ao conectar com GORDINHO.IA.",
+
+            "bot"
+
+        );
+
+    }
+
+};
+
+</script>
+
 </body>
 </html>
