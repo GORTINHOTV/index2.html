@@ -1,13 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Gordinho General</title>
-    <style>body { background: #000; color: #fff; font-family: sans-serif; padding: 20px; }</style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GORDINHO HUB — IA & Streaming</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif}
+  body{background:#0a0000;color:#fff;min-height:100vh;overflow-x:hidden;position:relative}
+  body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at top,rgba(255,30,30,.35),transparent 55%),radial-gradient(ellipse at bottom right,rgba(180,0,0,.25),transparent 50%);pointer-events:none;z-index:0}
+  body::after{content:"";position:fixed;inset:0;opacity:.06;background-image:linear-gradient(to right,#ff2a2a 1px,transparent 1px),linear-gradient(to bottom,#ff2a2a 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0}
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:40px 24px;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;justify-content:space-between;align-items:center}
+  .logo{display:flex;align-items:center;gap:12px}
+  .logo .badge{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:900;background:linear-gradient(135deg,#ef4444,#7f1d1d);box-shadow:0 0 20px rgba(255,40,40,.6)}
+  .logo span{font-size:13px;font-weight:600;letter-spacing:.3em;color:rgba(254,202,202,.8)}
+  header .meta{font-size:12px;color:rgba(254,202,202,.5)}
+  section{flex:1;display:flex;flex-direction:column;justify-content:center;padding:64px 0}
+  .kicker{font-size:12px;text-transform:uppercase;letter-spacing:.4em;color:rgba(252,165,165,.7);margin-bottom:16px;font-weight:500}
+  h1{font-size:clamp(40px,7vw,84px);font-weight:900;line-height:.95}
+  h1 .grad{background:linear-gradient(90deg,#f87171,#ef4444,#b91c1c);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{margin-top:24px;max-width:560px;font-size:18px;color:rgba(254,226,226,.6)}
+  .grid{margin-top:56px;display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .card{position:relative;overflow:hidden;border-radius:24px;border:1px solid rgba(239,68,68,.2);background:rgba(69,10,10,.2);padding:32px;text-decoration:none;color:inherit;transition:.3s}
+  .card:hover{transform:translateY(-4px);border-color:rgba(248,113,113,.6);background:rgba(127,29,29,.3);box-shadow:0 0 40px rgba(255,40,40,.25)}
+  .card .glow{position:absolute;right:-64px;top:-64px;width:192px;height:192px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#7f1d1d);opacity:.4;filter:blur(40px);transition:.3s}
+  .card:hover .glow{opacity:.7}
+  .card .inner{position:relative}
+  .tag{display:inline-block;border-radius:999px;border:1px solid rgba(248,113,113,.3);padding:4px 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.15em;color:rgba(254,202,202,.8)}
+  .card h2{margin-top:24px;font-size:30px;font-weight:900;letter-spacing:-.02em}
+  .card p{margin-top:8px;font-size:14px;color:rgba(254,226,226,.6)}
+  .cta{margin-top:32px;display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#fecaca}
+  .card:hover .cta span{transform:translateX(4px)}
+  .cta span{transition:.3s;display:inline-block}
+  footer{border-top:1px solid rgba(239,68,68,.15);padding-top:24px;font-size:12px;color:rgba(254,202,202,.4)}
+</style>
 </head>
 <body>
-    <h1>Mudanças de sites!</h1>
-    <p>GORDINHO IA: https://ia-red-six.vercel.app/
-    GORDINHO STREAM: https://index-html-qp7e.vercel.app/</p>
+<div class="wrap">
+  <header>
+    <div class="logo"><div class="badge">G</div><span>GORDINHO HUB</span></div>
+    <div class="meta">main · 2 sites ativos</div>
+  </header>
+  <section>
+    <p class="kicker">Bem-vindo</p>
+    <h1>Tudo do <span class="grad">Gordinho</span><br>em um só lugar.</h1>
+    <p class="lead">Escolha um portal abaixo e mergulhe — IA pra criar e streaming pra relaxar.</p>
+    <div class="grid">
+      <a class="card" href="https://ia-red-six.vercel.app/" target="_blank" rel="noreferrer">
+        <div class="glow"></div>
+        <div class="inner">
+          <span class="tag">Inteligência Artificial</span>
+          <h2>GORDINHO.IA</h2>
+          <p>Converse, crie e explore com a IA do Gordinho.</p>
+          <div class="cta">Acessar <span>→</span></div>
+        </div>
+      </a>
+      <a class="card" href="https://index-html-qp7e.vercel.app/" target="_blank" rel="noreferrer">
+        <div class="glow"></div>
+        <div class="inner">
+          <span class="tag">Filmes & Séries</span>
+          <h2>GORDINHO STREAM</h2>
+          <p>Seu cinema 24/7 — assista onde e quando quiser.</p>
+          <div class="cta">Acessar <span>→</span></div>
+        </div>
+      </a>
+    </div>
+  </section>
+  <footer>© 2026 Gordinho Main</footer>
+</div>
 </body>
 </html>
